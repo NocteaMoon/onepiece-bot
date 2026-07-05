@@ -6,12 +6,25 @@ config_group = app_commands.Group(name="config", description="Configuration du b
 
 SALON_CHOICES = [
     app_commands.Choice(name="Annonces", value="salon_annonces"),
+    app_commands.Choice(name="Règlement", value="salon_reglement"),
+    app_commands.Choice(name="Bienvenue", value="salon_bienvenue"),
     app_commands.Choice(name="Logs", value="salon_logs"),
     app_commands.Choice(name="Modération", value="salon_moderation"),
-    app_commands.Choice(name="Économie", value="salon_economie"),
-    app_commands.Choice(name="Mini-jeux", value="salon_minijeux"),
-    app_commands.Choice(name="Équipages", value="salon_equipages"),
     app_commands.Choice(name="Rapports", value="salon_rapports"),
+    app_commands.Choice(name="Général", value="salon_general"),
+    app_commands.Choice(name="Économie", value="salon_economie"),
+    app_commands.Choice(name="Boutique", value="salon_boutique"),
+    app_commands.Choice(name="Exploration", value="salon_exploration"),
+    app_commands.Choice(name="Combat", value="salon_combat"),
+    app_commands.Choice(name="Duel / PvP", value="salon_duel"),
+    app_commands.Choice(name="Pêche-Chasse-Récolte", value="salon_peche"),
+    app_commands.Choice(name="Casino", value="salon_casino"),
+    app_commands.Choice(name="Équipages", value="salon_equipages"),
+    app_commands.Choice(name="Marine", value="salon_marine"),
+    app_commands.Choice(name="Révolutionnaires", value="salon_revolutionnaires"),
+    app_commands.Choice(name="Classements", value="salon_classements"),
+    app_commands.Choice(name="Quêtes / Événements", value="salon_quetes"),
+    app_commands.Choice(name="Succès", value="salon_succes"),
 ]
 
 @config_group.command(name="salon", description="Définir un salon pour une fonctionnalité")
@@ -53,16 +66,13 @@ async def config_voir(interaction: discord.Interaction):
     if row is None:
         await interaction.response.send_message("Aucune configuration trouvée pour ce serveur.", ephemeral=True)
         return
-    embed = discord.Embed(title="⚙️ Configuration du serveur", color=discord.Color.blue())
+
+    embed = discord.Embed(title="⚙️ Configuration du serveur", color=0x2C3E50)
     embed.add_field(name="Langue", value=row["lang"], inline=False)
-    for key, label in [
-        ("salon_annonces", "Annonces"), ("salon_logs", "Logs"),
-        ("salon_moderation", "Modération"), ("salon_economie", "Économie"),
-        ("salon_minijeux", "Mini-jeux"), ("salon_equipages", "Équipages"),
-        ("salon_rapports", "Rapports"),
-    ]:
-        val = row[key]
-        embed.add_field(name=label, value=f"<#{val}>" if val else "Non défini", inline=True)
+    for choice in SALON_CHOICES:
+        val = row[choice.value]
+        embed.add_field(name=choice.name, value=f"<#{val}>" if val else "Non défini", inline=True)
+    embed.set_footer(text="🌊 One Piece Bot • Configuration")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @config_group.command(name="reset", description="Réinitialiser toute la configuration du serveur")
