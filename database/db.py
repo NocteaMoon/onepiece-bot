@@ -34,7 +34,17 @@ async def init_db():
                 PRIMARY KEY (guild_id, command_group, role_id)
             )
         """)
-        
+                await conn.execute("""
+            CREATE TABLE IF NOT EXISTS warnings (
+                id SERIAL PRIMARY KEY,
+                guild_id BIGINT,
+                user_id BIGINT,
+                moderator_id BIGINT,
+                reason TEXT,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+
     print("Base de données connectée et tables vérifiées.")
 
 def get_pool():
