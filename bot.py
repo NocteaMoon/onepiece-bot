@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 from flask import Flask
 from threading import Thread
+from database.db import init_db
 
 # --- Petit serveur web pour satisfaire Render (garde le bot "vivant") ---
 app = Flask('')
@@ -28,6 +29,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_ready():
     print(f"{bot.user} est connecté et en ligne !")
+    await init_db()
     try:
         synced = await bot.tree.sync()
         print(f"{len(synced)} commande(s) slash synchronisée(s).")
