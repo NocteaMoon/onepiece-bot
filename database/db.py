@@ -24,8 +24,10 @@ async def init_db():
                 lang TEXT DEFAULT 'fr'
             )
         """)
+
         for col in SALON_COLUMNS:
             await conn.execute(f"ALTER TABLE guild_config ADD COLUMN IF NOT EXISTS {col} BIGINT")
+
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS guild_command_roles (
                 guild_id BIGINT,
@@ -34,7 +36,8 @@ async def init_db():
                 PRIMARY KEY (guild_id, command_group, role_id)
             )
         """)
-                await conn.execute("""
+
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS warnings (
                 id SERIAL PRIMARY KEY,
                 guild_id BIGINT,
