@@ -2,7 +2,11 @@ import discord
 from discord import app_commands
 from database.db import get_pool
 
-config_group = app_commands.Group(name="config", description="Configuration du bot pour ce serveur")
+config_group = app_commands.Group(
+    name="config",
+    description="Configuration du bot pour ce serveur",
+    default_permissions=discord.Permissions(administrator=True)
+)
 
 SALON_CHOICES = [
     app_commands.Choice(name="Annonces", value="salon_annonces"),
@@ -30,7 +34,6 @@ SALON_CHOICES = [
 @config_group.command(name="salon", description="Définir un salon pour une fonctionnalité")
 @app_commands.describe(type="Le type de salon à configurer", salon="Le salon à utiliser")
 @app_commands.choices(type=SALON_CHOICES)
-@app_commands.checks.has_permissions(administrator=True)
 async def config_salon(interaction: discord.Interaction, type: app_commands.Choice[str], salon: discord.TextChannel):
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -46,7 +49,6 @@ async def config_salon(interaction: discord.Interaction, type: app_commands.Choi
     app_commands.Choice(name="Français", value="fr"),
     app_commands.Choice(name="English", value="en"),
 ])
-@app_commands.checks.has_permissions(administrator=True)
 async def config_lang(interaction: discord.Interaction, langue: app_commands.Choice[str]):
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -58,7 +60,6 @@ async def config_lang(interaction: discord.Interaction, langue: app_commands.Cho
     await interaction.response.send_message(f"✅ Langue définie sur **{langue.name}**", ephemeral=True)
 
 @config_group.command(name="voir", description="Afficher la configuration actuelle du serveur")
-@app_commands.checks.has_permissions(administrator=True)
 async def config_voir(interaction: discord.Interaction):
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -76,12 +77,13 @@ async def config_voir(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @config_group.command(name="reset", description="Réinitialiser toute la configuration du serveur")
-@app_commands.checks.has_permissions(administrator=True)
 async def config_reset(interaction: discord.Interaction):
     pool = get_pool()
     async with pool.acquire() as conn:
         await conn.execute("DELETE FROM guild_config WHERE guild_id = $1", interaction.guild_id)
     await interaction.response.send_message("🔄 Configuration réinitialisée.", ephemeral=True)
+
+
 permission_group = app_commands.Group(name="permission", description="Gérer les permissions par rôle", parent=config_group)
 
 COMMAND_GROUP_CHOICES = [
@@ -90,7 +92,6 @@ COMMAND_GROUP_CHOICES = [
 
 @permission_group.command(name="autoriser", description="Autoriser un rôle à utiliser une catégorie de commandes")
 @app_commands.choices(commande=COMMAND_GROUP_CHOICES)
-@app_commands.checks.has_permissions(administrator=True)
 async def permission_autoriser(interaction: discord.Interaction, commande: app_commands.Choice[str], role: discord.Role):
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -103,7 +104,6 @@ async def permission_autoriser(interaction: discord.Interaction, commande: app_c
 
 @permission_group.command(name="retirer", description="Retirer l'accès d'un rôle à une catégorie de commandes")
 @app_commands.choices(commande=COMMAND_GROUP_CHOICES)
-@app_commands.checks.has_permissions(administrator=True)
 async def permission_retirer(interaction: discord.Interaction, commande: app_commands.Choice[str], role: discord.Role):
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -113,7 +113,6 @@ async def permission_retirer(interaction: discord.Interaction, commande: app_com
     await interaction.response.send_message(f"✅ Accès retiré pour {role.mention} sur **{commande.name}**", ephemeral=True)
 
 @permission_group.command(name="liste", description="Voir les rôles autorisés par catégorie")
-@app_commands.checks.has_permissions(administrator=True)
 async def permission_liste(interaction: discord.Interaction):
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -129,6 +128,6 @@ async def permission_liste(interaction: discord.Interaction):
     for group, roles in grouped.items():
         embed.add_field(name=group, value=", ".join(roles), inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)
-    
+
 def setup_admin_commands(bot):
     bot.tree.add_command(config_group)
