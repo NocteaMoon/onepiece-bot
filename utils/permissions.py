@@ -5,14 +5,19 @@ from database.db import get_pool
 async def has_group_permission(interaction: discord.Interaction, group: str) -> bool:
     if interaction.user.guild_permissions.administrator:
         return True
+    return await member_has_group(interaction.user, group)
+
+async def member_has_group(member: discord.Member, group: str) -> bool:
+    if member.guild_permissions.administrator:
+        return True
     pool = get_pool()
-    role_ids = [r.id for r in interaction.user.roles]
+    role_ids = [r.id for r in member.roles]
     if not role_ids:
         return False
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT 1 FROM guild_command_roles WHERE guild_id = $1 AND command_group = $2 AND role_id = ANY($3::bigint[])",
-            interaction.guild_id, group, role_ids
+            member.guild.id, group, role_ids
         )
     return row is not None
 
