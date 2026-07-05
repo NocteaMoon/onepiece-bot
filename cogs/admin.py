@@ -82,6 +82,53 @@ async def config_reset(interaction: discord.Interaction):
     async with pool.acquire() as conn:
         await conn.execute("DELETE FROM guild_config WHERE guild_id = $1", interaction.guild_id)
     await interaction.response.send_message("🔄 Configuration réinitialisée.", ephemeral=True)
+permission_group = app_commands.Group(name="permission", description="Gérer les permissions par rôle", parent=config_group)
 
+COMMAND_GROUP_CHOICES = [
+    app_commands.Choice(name="Modération", value="mod"),
+]
+
+@permission_group.command(name="autoriser", description="Autoriser un rôle à utiliser une catégorie de commandes")
+@app_commands.choices(commande=COMMAND_GROUP_CHOICES)
+@app_commands.checks.has_permissions(administrator=True)
+async def permission_autoriser(interaction: discord.Interaction, commande: app_commands.Choice[str], role: discord.Role):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO guild_command_roles (guild_id, command_group, role_id)
+            VALUES ($1, $2, $3)
+            ON CONFLICT DO NOTHING
+        """, interaction.guild_id, commande.value, role.id)
+    await interaction.response.send_message(f"✅ Le rôle {role.mention} peut maintenant utiliser les commandes **{commande.name}**", ephemeral=True)
+
+@permission_group.command(name="retirer", description="Retirer l'accès d'un rôle à une catégorie de commandes")
+@app_commands.choices(commande=COMMAND_GROUP_CHOICES)
+@app_commands.checks.has_permissions(administrator=True)
+async def permission_retirer(interaction: discord.Interaction, commande: app_commands.Choice[str], role: discord.Role):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            DELETE FROM guild_command_roles WHERE guild_id = $1 AND command_group = $2 AND role_id = $3
+        """, interaction.guild_id, commande.value, role.id)
+    await interaction.response.send_message(f"✅ Accès retiré pour {role.mention} sur **{commande.name}**", ephemeral=True)
+
+@permission_group.command(name="liste", description="Voir les rôles autorisés par catégorie")
+@app_commands.checks.has_permissions(administrator=True)
+async def permission_liste(interaction: discord.Interaction):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("SELECT command_group, role_id FROM guild_command_roles WHERE guild_id = $1", interaction.guild_id)
+    if not rows:
+        await interaction.response.send_message("Aucune permission personnalisée définie.", ephemeral=True)
+        return
+    embed = discord.Embed(title="🔑 Permissions par rôle", color=0x2C3E50)
+    embed.set_footer(text="🌊 One Piece Bot • Configuration")
+    grouped = {}
+    for r in rows:
+        grouped.setdefault(r["command_group"], []).append(f"<@&{r['role_id']}>")
+    for group, roles in grouped.items():
+        embed.add_field(name=group, value=", ".join(roles), inline=False)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+    
 def setup_admin_commands(bot):
     bot.tree.add_command(config_group)
