@@ -48,6 +48,26 @@ async def init_db():
             )
         """)
 
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS automod_config (
+                guild_id BIGINT PRIMARY KEY,
+                anti_spam BOOLEAN DEFAULT FALSE,
+                spam_msg_limit INT DEFAULT 5,
+                spam_seconds INT DEFAULT 5,
+                anti_liens BOOLEAN DEFAULT FALSE,
+                anti_insultes BOOLEAN DEFAULT FALSE,
+                anti_raid BOOLEAN DEFAULT FALSE,
+                raid_join_limit INT DEFAULT 5,
+                raid_seconds INT DEFAULT 10,
+                anti_mention BOOLEAN DEFAULT FALSE,
+                mention_limit INT DEFAULT 5,
+                anti_pub BOOLEAN DEFAULT FALSE,
+                anti_alt BOOLEAN DEFAULT FALSE,
+                alt_min_days INT DEFAULT 7,
+                anti_bot BOOLEAN DEFAULT FALSE
+            )
+        """)
+
     print("Base de données connectée et tables vérifiées.")
 
 def get_pool():
