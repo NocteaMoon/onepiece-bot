@@ -5,6 +5,7 @@ from discord.ext import commands
 from flask import Flask
 from threading import Thread
 from database.db import init_db
+from cogs.moderation import setup_moderation_commands
 
 # --- Petit serveur web pour satisfaire Render (garde le bot "vivant") ---
 app = Flask('')
@@ -27,6 +28,7 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 setup_admin_commands(bot)
+setup_moderation_commands(bot)
 
 @bot.event
 async def on_ready():
