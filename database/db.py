@@ -68,6 +68,18 @@ async def init_db():
             )
         """)
 
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS logs_config (
+                guild_id BIGINT PRIMARY KEY,
+                log_msg_delete BOOLEAN DEFAULT TRUE,
+                log_msg_edit BOOLEAN DEFAULT TRUE,
+                log_join_leave BOOLEAN DEFAULT TRUE,
+                log_salons BOOLEAN DEFAULT TRUE,
+                log_roles BOOLEAN DEFAULT TRUE,
+                log_pseudos BOOLEAN DEFAULT TRUE
+            )
+        """)
+
     print("Base de données connectée et tables vérifiées.")
 
 def get_pool():
