@@ -1,13 +1,13 @@
 import os
 import discord
-from cogs.admin import setup_admin_commands
 from discord.ext import commands
 from flask import Flask
 from threading import Thread
 from database.db import init_db
+from cogs.admin import setup_admin_commands
 from cogs.moderation import setup_moderation_commands
+from cogs.automod import setup_automod_commands
 
-# --- Petit serveur web pour satisfaire Render (garde le bot "vivant") ---
 app = Flask('')
 
 @app.route('/')
@@ -21,12 +21,12 @@ def keep_alive():
     t = Thread(target=run_web)
     t.start()
 
-# --- Configuration du bot Discord ---
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
+
 setup_admin_commands(bot)
 setup_moderation_commands(bot)
 
@@ -34,6 +34,7 @@ setup_moderation_commands(bot)
 async def on_ready():
     print(f"{bot.user} est connecté et en ligne !")
     await init_db()
+    await setup_automod_commands(bot)
     try:
         synced = await bot.tree.sync()
         print(f"{len(synced)} commande(s) slash synchronisée(s).")
