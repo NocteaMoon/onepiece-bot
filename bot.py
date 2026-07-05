@@ -7,6 +7,7 @@ from database.db import init_db
 from cogs.admin import setup_admin_commands
 from cogs.moderation import setup_moderation_commands
 from cogs.automod import setup_automod_commands
+from cogs.serverlogs import setup_serverlogs_commands
 
 app = Flask('')
 
@@ -35,6 +36,7 @@ async def on_ready():
     print(f"{bot.user} est connecté et en ligne !")
     await init_db()
     await setup_automod_commands(bot)
+    await setup_serverlogs_commands(bot)
     try:
         synced = await bot.tree.sync()
         print(f"{len(synced)} commande(s) slash synchronisée(s).")
