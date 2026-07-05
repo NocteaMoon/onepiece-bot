@@ -202,5 +202,5 @@ class AutomodListener(commands.Cog):
                     pass
                 await log_action(member.guild, "Anti-raid", self.bot.user, member, "Vague d'arrivées suspecte détectée")
 
-def setup_automod_commands(bot):
-    bot.add_cog(AutomodListener(bot))
+async def setup_automod_commands(bot):
+    await bot.add_cog(AutomodListener(bot))
