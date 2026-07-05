@@ -5,7 +5,11 @@ from database.db import get_pool
 from utils.permissions import has_group_permission
 from utils.logging import log_action
 
-mod_group = app_commands.Group(name="mod", description="Commandes de modération")
+mod_group = app_commands.Group(
+    name="mod",
+    description="Commandes de modération",
+    default_permissions=discord.Permissions(moderate_members=True)
+)
 
 async def check_mod(interaction: discord.Interaction) -> bool:
     allowed = await has_group_permission(interaction, "mod")
