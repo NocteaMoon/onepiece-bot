@@ -26,7 +26,15 @@ async def init_db():
         """)
         for col in SALON_COLUMNS:
             await conn.execute(f"ALTER TABLE guild_config ADD COLUMN IF NOT EXISTS {col} BIGINT")
-
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS guild_command_roles (
+                guild_id BIGINT,
+                command_group TEXT,
+                role_id BIGINT,
+                PRIMARY KEY (guild_id, command_group, role_id)
+            )
+        """)
+        
     print("Base de données connectée et tables vérifiées.")
 
 def get_pool():
