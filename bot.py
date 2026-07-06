@@ -4,12 +4,13 @@ from discord.ext import commands
 from flask import Flask
 from threading import Thread
 from database.db import init_db
-from cogs.admin import setup_admin_commands
+from cogs.admin import setup_admin_commands, config_group
 from cogs.moderation import setup_moderation_commands
 from cogs.automod import setup_automod_commands
 from cogs.serverlogs import setup_serverlogs_commands
 from cogs.setup import setup_setup_commands
 from cogs.tickets import setup_tickets_commands, TicketPanelView, TicketCloseView
+from cogs.welcome import setup_welcome_commands, WelcomeVerifyView
 
 app = Flask('')
 
@@ -41,8 +42,10 @@ async def on_ready():
     await init_db()
     await setup_automod_commands(bot)
     await setup_serverlogs_commands(bot)
+    await setup_welcome_commands(bot, config_group)
     bot.add_view(TicketPanelView())
     bot.add_view(TicketCloseView())
+    bot.add_view(WelcomeVerifyView())
     try:
         synced = await bot.tree.sync()
         print(f"{len(synced)} commande(s) slash synchronisée(s).")
