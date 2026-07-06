@@ -91,6 +91,15 @@ async def init_db():
             )
         """)
 
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS welcome_config (
+                guild_id BIGINT PRIMARY KEY,
+                message TEXT DEFAULT 'Bienvenue {mention} sur {serveur} ! Tu es notre {nombre}ème membre 🏴‍☠️',
+                auto_role_id BIGINT,
+                verification_enabled BOOLEAN DEFAULT FALSE
+            )
+        """)
+
     print("Base de données connectée et tables vérifiées.")
 
 def get_pool():
