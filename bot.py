@@ -9,6 +9,7 @@ from cogs.moderation import setup_moderation_commands
 from cogs.automod import setup_automod_commands
 from cogs.serverlogs import setup_serverlogs_commands
 from cogs.setup import setup_setup_commands
+from cogs.tickets import setup_tickets_commands, TicketPanelView, TicketCloseView
 
 app = Flask('')
 
@@ -32,6 +33,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 setup_admin_commands(bot)
 setup_moderation_commands(bot)
 setup_setup_commands(bot)
+setup_tickets_commands(bot)
 
 @bot.event
 async def on_ready():
@@ -39,6 +41,8 @@ async def on_ready():
     await init_db()
     await setup_automod_commands(bot)
     await setup_serverlogs_commands(bot)
+    bot.add_view(TicketPanelView())
+    bot.add_view(TicketCloseView())
     try:
         synced = await bot.tree.sync()
         print(f"{len(synced)} commande(s) slash synchronisée(s).")
