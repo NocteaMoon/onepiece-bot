@@ -80,6 +80,17 @@ async def init_db():
             )
         """)
 
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS tickets (
+                channel_id BIGINT PRIMARY KEY,
+                guild_id BIGINT,
+                user_id BIGINT,
+                type TEXT,
+                status TEXT DEFAULT 'open',
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+
     print("Base de données connectée et tables vérifiées.")
 
 def get_pool():
