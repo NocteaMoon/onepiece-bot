@@ -8,6 +8,7 @@ from cogs.admin import setup_admin_commands
 from cogs.moderation import setup_moderation_commands
 from cogs.automod import setup_automod_commands
 from cogs.serverlogs import setup_serverlogs_commands
+from cogs.setup import setup_setup_commands
 
 app = Flask('')
 
@@ -30,6 +31,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 setup_admin_commands(bot)
 setup_moderation_commands(bot)
+setup_setup_commands(bot)
 
 @bot.event
 async def on_ready():
