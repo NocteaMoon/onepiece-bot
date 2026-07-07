@@ -102,6 +102,72 @@ async def init_db():
         """)
         await conn.execute("ALTER TABLE welcome_config ADD COLUMN IF NOT EXISTS background_url TEXT")
 
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS players (
+                guild_id BIGINT,
+                user_id BIGINT,
+
+                niveau INT DEFAULT 1,
+                xp BIGINT DEFAULT 0,
+                xp_cache BIGINT DEFAULT 0,
+                titre TEXT,
+                metier TEXT,
+                faction TEXT DEFAULT 'Civil',
+
+                berrys BIGINT DEFAULT 100,
+                banque BIGINT DEFAULT 0,
+                prime BIGINT DEFAULT 0,
+                rep_pirates INT DEFAULT 0,
+                rep_marine INT DEFAULT 0,
+                rep_revolutionnaires INT DEFAULT 0,
+                rep_civils INT DEFAULT 0,
+                rep_marchands INT DEFAULT 0,
+                notoriete INT DEFAULT 0,
+
+                pv_max INT DEFAULT 100,
+                pv INT DEFAULT 100,
+                force INT DEFAULT 10,
+                defense INT DEFAULT 10,
+                vitesse INT DEFAULT 10,
+                agilite INT DEFAULT 10,
+                endurance_max INT DEFAULT 100,
+                endurance INT DEFAULT 100,
+
+                maitrise_epee INT DEFAULT 0,
+                maitrise_poings INT DEFAULT 0,
+                maitrise_lance INT DEFAULT 0,
+                maitrise_pistolet INT DEFAULT 0,
+                maitrise_fusil INT DEFAULT 0,
+                maitrise_arc INT DEFAULT 0,
+
+                fruit TEXT,
+                fruit_eveil BOOLEAN DEFAULT FALSE,
+                haki_armement INT DEFAULT 0,
+                haki_observation INT DEFAULT 0,
+                haki_rois INT DEFAULT 0,
+
+                equip_arme_principale BIGINT,
+                equip_arme_secondaire BIGINT,
+                equip_tete BIGINT,
+                equip_corps BIGINT,
+                equip_accessoire1 BIGINT,
+                equip_accessoire2 BIGINT,
+                equip_navire BIGINT,
+
+                mer TEXT DEFAULT 'East Blue',
+                ile TEXT DEFAULT 'Île de départ',
+                equipage_id BIGINT,
+                grade_equipage TEXT,
+
+                chance INT DEFAULT 0,
+                ko_jusqua TIMESTAMP,
+                derniere_regen TIMESTAMP DEFAULT NOW(),
+                cree_le TIMESTAMP DEFAULT NOW(),
+
+                PRIMARY KEY (guild_id, user_id)
+            )
+        """)
+
     print("Base de données connectée et tables vérifiées.")
 
 def get_pool():
