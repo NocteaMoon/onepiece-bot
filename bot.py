@@ -12,6 +12,7 @@ from cogs.setup import setup_setup_commands
 from cogs.tickets import setup_tickets_commands, TicketPanelView, TicketCloseView
 from cogs.welcome import setup_welcome_commands, WelcomeVerifyView
 from cogs.profil import setup_profil_commands
+from cogs.economie import setup_economie_commands
 
 app = Flask('')
 
@@ -37,6 +38,7 @@ setup_moderation_commands(bot)
 setup_setup_commands(bot)
 setup_tickets_commands(bot)
 setup_profil_commands(bot)
+setup_economie_commands(bot)
 
 @bot.event
 async def on_ready():
