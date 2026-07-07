@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+import aiohttp
 from database.db import get_pool
 from utils.welcome_card import generate_welcome_card
 
@@ -48,6 +49,19 @@ async def bienvenue_verification(interaction: discord.Interaction, etat: app_com
         await conn.execute("UPDATE welcome_config SET verification_enabled = $2 WHERE guild_id = $1", interaction.guild_id, etat.value == "on")
     await interaction.response.send_message(f"✅ Vérification **{etat.name}**", ephemeral=True)
 
+@welcome_group.command(name="fond", description="Définir une image de fond personnalisée pour la carte de bienvenue")
+@app_commands.describe(image="Upload une image (laisse vide pour revenir au fond sombre par défaut)")
+async def bienvenue_fond(interaction: discord.Interaction, image: discord.Attachment = None):
+    await get_welcome_config(interaction.guild_id)
+    pool = get_pool()
+    url = image.url if image else None
+    async with pool.acquire() as conn:
+        await conn.execute("UPDATE welcome_config SET background_url = $2 WHERE guild_id = $1", interaction.guild_id, url)
+    if url:
+        await interaction.response.send_message("✅ Image de fond personnalisée définie.", ephemeral=True)
+    else:
+        await interaction.response.send_message("✅ Retour au fond sombre par défaut.", ephemeral=True)
+
 @welcome_group.command(name="voir", description="Voir la configuration de bienvenue actuelle")
 async def bienvenue_voir(interaction: discord.Interaction):
     row = await get_welcome_config(interaction.guild_id)
@@ -56,6 +70,7 @@ async def bienvenue_voir(interaction: discord.Interaction):
     role = interaction.guild.get_role(row["auto_role_id"]) if row["auto_role_id"] else None
     embed.add_field(name="Rôle automatique", value=role.mention if role else "Non défini", inline=True)
     embed.add_field(name="Vérification", value="🟢 Activée" if row["verification_enabled"] else "🔴 Désactivée", inline=True)
+    embed.add_field(name="Fond personnalisé", value="🟢 Oui" if row["background_url"] else "🔴 Non (fond sombre par défaut)", inline=True)
     embed.set_footer(text="🌊 One Piece Bot • Bienvenue")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -110,9 +125,19 @@ class WelcomeListener(commands.Cog):
 
         row = await get_welcome_config(member.guild.id)
 
+        background_bytes = None
+        if row["background_url"]:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(row["background_url"]) as resp:
+                        if resp.status == 200:
+                            background_bytes = await resp.read()
+            except Exception:
+                background_bytes = None
+
         try:
             avatar_bytes = await member.display_avatar.replace(size=256, format="png").read()
-            image_buffer = generate_welcome_card(avatar_bytes, member.display_name, member.guild.member_count)
+            image_buffer = generate_welcome_card(avatar_bytes, member.display_name, member.guild.member_count, background_bytes)
             file = discord.File(image_buffer, filename="bienvenue.png")
         except Exception:
             file = None
