@@ -96,9 +96,11 @@ async def init_db():
                 guild_id BIGINT PRIMARY KEY,
                 message TEXT DEFAULT 'Bienvenue {mention} sur {serveur} ! Tu es notre {nombre}ème membre 🏴‍☠️',
                 auto_role_id BIGINT,
-                verification_enabled BOOLEAN DEFAULT FALSE
+                verification_enabled BOOLEAN DEFAULT FALSE,
+                background_url TEXT
             )
         """)
+        await conn.execute("ALTER TABLE welcome_config ADD COLUMN IF NOT EXISTS background_url TEXT")
 
     print("Base de données connectée et tables vérifiées.")
 
