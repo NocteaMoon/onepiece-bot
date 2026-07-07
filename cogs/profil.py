@@ -16,6 +16,8 @@ FACTION_EMOJIS = {
     "Civil": "🏘️",
 }
 
+ESPACE = "\u200b"
+
 @app_commands.command(name="commencer", description="Créer ton personnage et débuter l'aventure !")
 @app_commands.choices(faction=[
     app_commands.Choice(name="🏴‍☠️ Pirate — liberté, primes et trésors", value="Pirate"),
@@ -77,7 +79,7 @@ async def profil(interaction: discord.Interaction, membre: discord.Member = None
             f"Niveau **{player['niveau']}**\n"
             f"XP : {player['xp']}/{xp_prochain}\n"
             f"Titre : {player['titre'] or 'Aucun'}\n"
-            f"Métier : {player['metier'] or 'Aucun'}"
+            f"Métier : {player['metier'] or 'Aucun'}\n{ESPACE}"
         ),
         inline=True
     )
@@ -87,7 +89,7 @@ async def profil(interaction: discord.Interaction, membre: discord.Member = None
         value=(
             f"Berrys : **{player['berrys']:,}** ฿\n"
             f"Banque : {player['banque']:,} ฿\n"
-            f"Prime : ☠️ {player['prime']:,} ฿"
+            f"Prime : ☠️ {player['prime']:,} ฿\n{ESPACE}"
         ),
         inline=True
     )
@@ -98,7 +100,7 @@ async def profil(interaction: discord.Interaction, membre: discord.Member = None
             f"PV : {player['pv']}/{player['pv_max']}\n"
             f"Endurance : {player['endurance']}/{player['endurance_max']}\n"
             f"Force {player['force']} • Déf {player['defense']}\n"
-            f"Vit {player['vitesse']} • Agi {player['agilite']}"
+            f"Vit {player['vitesse']} • Agi {player['agilite']}\n{ESPACE}"
         ),
         inline=True
     )
@@ -116,13 +118,13 @@ async def profil(interaction: discord.Interaction, membre: discord.Member = None
 
     embed.add_field(
         name="✨ Pouvoirs",
-        value=f"Fruit : {fruit}{eveil}\nHaki : {haki}",
+        value=f"Fruit : {fruit}{eveil}\nHaki : {haki}\n{ESPACE}",
         inline=True
     )
 
     embed.add_field(
         name="🗺️ Position",
-        value=f"Mer : {player['mer']}\nÎle : {player['ile']}",
+        value=f"Mer : {player['mer']}\nÎle : {player['ile']}\n{ESPACE}",
         inline=True
     )
 
@@ -132,7 +134,7 @@ async def profil(interaction: discord.Interaction, membre: discord.Member = None
         equipage = f"ID {player['equipage_id']}{grade}"
     embed.add_field(
         name="🏴‍☠️ Équipage",
-        value=f"{equipage}\nFaction : {faction}",
+        value=f"{equipage}\nFaction : {faction}\n{ESPACE}",
         inline=True
     )
 
