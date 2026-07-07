@@ -106,14 +106,12 @@ async def init_db():
             CREATE TABLE IF NOT EXISTS players (
                 guild_id BIGINT,
                 user_id BIGINT,
-
                 niveau INT DEFAULT 1,
                 xp BIGINT DEFAULT 0,
                 xp_cache BIGINT DEFAULT 0,
                 titre TEXT,
                 metier TEXT,
                 faction TEXT DEFAULT 'Civil',
-
                 berrys BIGINT DEFAULT 100,
                 banque BIGINT DEFAULT 0,
                 prime BIGINT DEFAULT 0,
@@ -123,7 +121,6 @@ async def init_db():
                 rep_civils INT DEFAULT 0,
                 rep_marchands INT DEFAULT 0,
                 notoriete INT DEFAULT 0,
-
                 pv_max INT DEFAULT 100,
                 pv INT DEFAULT 100,
                 force INT DEFAULT 10,
@@ -132,20 +129,17 @@ async def init_db():
                 agilite INT DEFAULT 10,
                 endurance_max INT DEFAULT 100,
                 endurance INT DEFAULT 100,
-
                 maitrise_epee INT DEFAULT 0,
                 maitrise_poings INT DEFAULT 0,
                 maitrise_lance INT DEFAULT 0,
                 maitrise_pistolet INT DEFAULT 0,
                 maitrise_fusil INT DEFAULT 0,
                 maitrise_arc INT DEFAULT 0,
-
                 fruit TEXT,
                 fruit_eveil BOOLEAN DEFAULT FALSE,
                 haki_armement INT DEFAULT 0,
                 haki_observation INT DEFAULT 0,
                 haki_rois INT DEFAULT 0,
-
                 equip_arme_principale BIGINT,
                 equip_arme_secondaire BIGINT,
                 equip_tete BIGINT,
@@ -153,18 +147,60 @@ async def init_db():
                 equip_accessoire1 BIGINT,
                 equip_accessoire2 BIGINT,
                 equip_navire BIGINT,
-
                 mer TEXT DEFAULT 'East Blue',
                 ile TEXT DEFAULT 'Île de départ',
                 equipage_id BIGINT,
                 grade_equipage TEXT,
-
                 chance INT DEFAULT 0,
                 ko_jusqua TIMESTAMP,
                 derniere_regen TIMESTAMP DEFAULT NOW(),
                 cree_le TIMESTAMP DEFAULT NOW(),
-
                 PRIMARY KEY (guild_id, user_id)
+            )
+        """)
+
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS shop_items (
+                id SERIAL PRIMARY KEY,
+                guild_id BIGINT,
+                nom TEXT,
+                description TEXT,
+                categorie TEXT,
+                faction TEXT DEFAULT 'Tous',
+                rarete TEXT DEFAULT 'Commun',
+                prix BIGINT DEFAULT 0,
+                slot TEXT,
+                bonus_force INT DEFAULT 0,
+                bonus_defense INT DEFAULT 0,
+                bonus_vitesse INT DEFAULT 0,
+                bonus_agilite INT DEFAULT 0,
+                bonus_pv INT DEFAULT 0,
+                bonus_chance INT DEFAULT 0,
+                soin_pv INT DEFAULT 0,
+                soin_endurance INT DEFAULT 0,
+                durabilite_max INT DEFAULT 100,
+                stock INT DEFAULT -1,
+                niveau_requis INT DEFAULT 1,
+                actif BOOLEAN DEFAULT TRUE,
+                cree_le TIMESTAMP DEFAULT NOW()
+            )
+        """)
+
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS inventory (
+                id SERIAL PRIMARY KEY,
+                guild_id BIGINT,
+                user_id BIGINT,
+                item_id BIGINT,
+                quantite INT DEFAULT 1,
+                durabilite INT DEFAULT 100,
+                equipe BOOLEAN DEFAULT FALSE
+            )
+        """)
+
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS shop_seeded (
+                guild_id BIGINT PRIMARY KEY
             )
         """)
 
