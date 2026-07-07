@@ -29,7 +29,7 @@ async def bienvenue_message(interaction: discord.Interaction, texte: str):
         await conn.execute("UPDATE welcome_config SET message = $2 WHERE guild_id = $1", interaction.guild_id, texte)
     await interaction.response.send_message("✅ Message de bienvenue mis à jour.", ephemeral=True)
 
-@welcome_group.command(name="role", description="Définir le rôle attribué automatiquement à l'arrivée")
+@welcome_group.command(name="role", description="Définir le rôle attribué automatiquement à l'arrivée ou via la vérification")
 async def bienvenue_role(interaction: discord.Interaction, role: discord.Role):
     await get_welcome_config(interaction.guild_id)
     pool = get_pool()
@@ -37,10 +37,10 @@ async def bienvenue_role(interaction: discord.Interaction, role: discord.Role):
         await conn.execute("UPDATE welcome_config SET auto_role_id = $2 WHERE guild_id = $1", interaction.guild_id, role.id)
     await interaction.response.send_message(f"✅ Rôle automatique défini sur {role.mention}", ephemeral=True)
 
-@welcome_group.command(name="verification", description="Activer/désactiver la vérification avant d'obtenir le rôle")
+@welcome_group.command(name="verification", description="Activer/désactiver la vérification (rôle via bouton au lieu d'automatique)")
 @app_commands.choices(etat=[
-    app_commands.Choice(name="Activé (le membre doit cliquer sur un bouton)", value="on"),
-    app_commands.Choice(name="Désactivé (rôle donné automatiquement)", value="off"),
+    app_commands.Choice(name="Activé (le membre doit cliquer sur le bouton du panneau règlement)", value="on"),
+    app_commands.Choice(name="Désactivé (rôle donné automatiquement à l'arrivée)", value="off"),
 ])
 async def bienvenue_verification(interaction: discord.Interaction, etat: app_commands.Choice[str]):
     await get_welcome_config(interaction.guild_id)
@@ -61,6 +61,15 @@ async def bienvenue_fond(interaction: discord.Interaction, image: discord.Attach
         await interaction.response.send_message("✅ Image de fond personnalisée définie.", ephemeral=True)
     else:
         await interaction.response.send_message("✅ Retour au fond sombre par défaut.", ephemeral=True)
+
+@welcome_group.command(name="panneau-verification", description="Poster le bouton de vérification dans ce salon (sous ton règlement)")
+async def bienvenue_panneau(interaction: discord.Interaction):
+    row = await get_welcome_config(interaction.guild_id)
+    if not row["auto_role_id"]:
+        await interaction.response.send_message("⚠️ Configure d'abord un rôle avec `/config bienvenue role`.", ephemeral=True)
+        return
+    await interaction.channel.send(view=WelcomeVerifyView())
+    await interaction.response.send_message("✅ Panneau de vérification posté dans ce salon.", ephemeral=True)
 
 @welcome_group.command(name="voir", description="Voir la configuration de bienvenue actuelle")
 async def bienvenue_voir(interaction: discord.Interaction):
@@ -101,7 +110,7 @@ class WelcomeVerifyView(discord.ui.View):
             await interaction.response.send_message("Tu es déjà vérifié ✅", ephemeral=True)
             return
         try:
-            await interaction.user.add_roles(role, reason="Vérification bienvenue")
+            await interaction.user.add_roles(role, reason="Vérification règlement")
         except discord.Forbidden:
             await interaction.response.send_message("❌ Je n'ai pas la permission de te donner ce rôle.", ephemeral=True)
             return
@@ -143,13 +152,12 @@ class WelcomeListener(commands.Cog):
             file = None
 
         content = _format_message(row["message"], member)
-        view = WelcomeVerifyView() if row["verification_enabled"] else None
 
         try:
             if file:
-                await channel.send(content=content, file=file, view=view)
+                await channel.send(content=content, file=file)
             else:
-                await channel.send(content=content, view=view)
+                await channel.send(content=content)
         except discord.Forbidden:
             pass
 
