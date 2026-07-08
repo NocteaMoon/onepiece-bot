@@ -71,18 +71,18 @@ async def explorer(interaction: discord.Interaction):
             message = f"Tu explores {lieu} et trouves **{berrys_gain} Berrys** à la place."
     elif type_ == "coffre":
         berrys_gain = random.randint(50, 100)
-        message = f"Un coffre entrouvert t'attend à {lieu} ! Il contient **{berrys_gain} Berrys** !"
+        message = f"En fouillant {lieu}, tu découvres un coffre entrouvert contenant **{berrys_gain} Berrys** !"
     elif type_ == "pnj":
         berrys_gain = random.randint(10, 25)
-        message = f"Tu croises un vieux marin à {lieu} qui te confie **{berrys_gain} Berrys** en souvenir d'une autre époque."
+        message = f"En explorant {lieu}, tu croises un vieux marin qui te confie **{berrys_gain} Berrys** en souvenir d'une autre époque."
     elif type_ == "meteo":
         endurance_cost += 10
-        message = f"Une pluie soudaine te surprend à {lieu}. Tu es plus fatigué que prévu (endurance supplémentaire dépensée)."
+        message = f"Une pluie soudaine te surprend alors que tu explores {lieu}. Tu es plus fatigué que prévu (endurance supplémentaire dépensée)."
     elif type_ == "tresor_cache":
         berrys_gain = random.randint(150, 300)
-        message = f"🌟 **INCROYABLE !** Tu déterres un véritable **trésor caché** à {lieu} : **{berrys_gain} Berrys** !"
+        message = f"🌟 **INCROYABLE !** En fouillant minutieusement {lieu}, tu déterres un véritable **trésor caché** : **{berrys_gain} Berrys** !"
     elif type_ == "empreintes":
-        message = f"Tu remarques d'étranges empreintes à {lieu}... quelque chose — ou quelqu'un — est passé par là récemment. 👣"
+        message = f"En explorant {lieu}, tu remarques d'étranges empreintes... quelque chose — ou quelqu'un — est passé par là récemment. 👣"
 
     pool = get_pool()
     async with pool.acquire() as conn:
