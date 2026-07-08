@@ -53,9 +53,9 @@ async def do_gather(interaction: discord.Interaction, titre: str, verbe_action: 
     niveaux_gagnes, nouveau_niveau = await add_xp(interaction.guild_id, interaction.user.id, xp_gain, xpc_gain)
 
     if resultat == "RIEN":
-        message = f"Tu {verbe_action} à {lieu} mais ne trouves rien cette fois-ci."
+        message = f"Tu {verbe_action} {lieu} mais ne trouves rien cette fois-ci."
     else:
-        message = f"Tu {verbe_action} à {lieu} et obtiens **{resultat}** !"
+        message = f"Tu {verbe_action} {lieu} et obtiens **{resultat}** !"
 
     embed = discord.Embed(title=titre, description=message, color=couleur)
     embed.set_footer(text=f"🌊 One Piece Bot • +{xp_gain} XP • -{COUT_ENDURANCE_COLLECTE} endurance")
