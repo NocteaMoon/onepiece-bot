@@ -1,17 +1,14 @@
 # Catalogue d'objets par défaut, dans l'esprit One Piece (noms originaux, non copiés de l'œuvre).
-# Chaque objet : (nom, description, categorie, faction, rarete, prix, slot,
-#                  b_force, b_defense, b_vitesse, b_agilite, b_pv, b_chance,
-#                  soin_pv, soin_endurance, durabilite_max, stock, niveau_requis)
-# faction : 'Tous', 'Pirate', 'Marine', 'Révolutionnaire'
-# slot : arme_principale, arme_secondaire, tete, corps, accessoire, navire, ou None (consommable)
-# stock : -1 = illimité, sinon quantité disponible
+# (nom, description, categorie, faction, rarete, prix, slot,
+#  b_force, b_defense, b_vitesse, b_agilite, b_pv, b_chance,
+#  soin_pv, soin_endurance, durabilite_max, stock, niveau_requis)
 
 CATALOGUE = [
     # ===== CONSOMMABLES (communs à tous) =====
     ("Ration de bord", "Restaure un peu d'endurance.", "Consommable", "Tous", "Commun", 30, None, 0,0,0,0,0,0, 0, 40, 1, -1, 1),
     ("Repas de taverne", "Un bon repas chaud qui redonne des forces.", "Consommable", "Tous", "Commun", 60, None, 0,0,0,0,0,0, 30, 60, 1, -1, 1),
     ("Potion de soin", "Restaure 50 PV instantanément.", "Consommable", "Tous", "Aiguisé", 120, None, 0,0,0,0,0,0, 50, 0, 1, -1, 1),
-    ("Grand remède", "Restaure 120 PV instantanément.", "Consommable", "Tous", "Grade", 300, None, 0,0,0,0,0,0, 120, 0, 1, -1, 5),
+    ("Grand remède", "Restaure 120 PV instantanément.", "Consommable", "Tous", "Grade", 300, None, 0,0,0,0,0,0, 120, 0, 1, 20, 5),
     ("Élixir du médecin", "Restaure tous les PV et l'endurance.", "Consommable", "Tous", "Grand Grade", 800, None, 0,0,0,0,0,0, 9999, 9999, 1, 20, 10),
 
     # ===== ACCESSOIRES (communs) =====
@@ -57,4 +54,25 @@ CATALOGUE = [
     ("Faux de la révolte", "Arme emblématique des insurgés. +31 force, +10 agilité.", "Arme", "Révolutionnaire", "Grand Grade", 3100, "arme_principale", 31,0,6,10,0,0, 0,0, 230, 15, 1),
     ("Lame noire du libérateur", "Née dans les flammes de la révolte. +46 force, +14 agilité.", "Arme", "Révolutionnaire", "Suprême", 9800, "arme_principale", 46,0,8,14,0,0, 0,0, 370, 28, 1),
     ("Cape d'infiltration", "Se fondre dans l'ombre. +6 agilité, +4 chance.", "Corps", "Révolutionnaire", "Grade", 600, "corps", 0,3,0,6,0,4, 0,0, 130, 5, 1),
+
+    # ===== INGRÉDIENTS (communs, base des métiers) =====
+    ("Poisson argenté", "Un petit poisson argenté, idéal pour une soupe simple.", "Ingrédient", "Tous", "Commun", 8, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Poisson tigre", "Un poisson rayé à la chair ferme, plus difficile à attraper.", "Ingrédient", "Tous", "Aiguisé", 25, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Anguille des courants", "Une anguille vive qui se faufile dans les courants marins.", "Ingrédient", "Tous", "Aiguisé", 20, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Étoile de mer scintillante", "Rare et précieuse, elle brille faiblement la nuit.", "Ingrédient", "Tous", "Grade", 60, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Viande de sanglier des mers", "Une viande goûteuse prisée des cuisiniers de bord.", "Ingrédient", "Tous", "Commun", 10, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Plume de faucon-tonnerre", "Une plume électrique arrachée à un rapace redouté.", "Ingrédient", "Tous", "Aiguisé", 22, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Peau de varan des dunes", "Résistante et rare, elle vient d'un lézard géant.", "Ingrédient", "Tous", "Grade", 55, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Baies sucrées", "De petites baies gorgées de sucre naturel.", "Ingrédient", "Tous", "Commun", 6, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Racine noueuse", "Une racine terreuse, base de nombreux plats simples.", "Ingrédient", "Tous", "Commun", 6, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Champignon des embruns", "Pousse uniquement près des côtes brumeuses.", "Ingrédient", "Tous", "Aiguisé", 18, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Fleur de corail", "Une fleur rarissime qui pousse sur le corail vivant.", "Ingrédient", "Tous", "Grade", 50, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+
+    # ===== PLATS (uniquement via /cuisiner, jamais achetables — stock à 0) =====
+    ("Soupe de fortune", "Une soupe chaude et réconfortante, préparée avec le peu qu'on a.", "Plat", "Tous", "Commun", 40, None, 0,0,0,0,0,0, 40,0, 1, 0, 1),
+    ("Riz sauté du marin", "Un plat roboratif qui redonne de l'énergie avant une longue traversée.", "Plat", "Tous", "Commun", 45, None, 0,0,0,0,0,0, 0,50, 1, 0, 1),
+    ("Ragoût de sanglier", "Un ragoût copieux qui tient au corps.", "Plat", "Tous", "Aiguisé", 90, None, 0,0,0,0,0,0, 80,30, 1, 0, 1),
+    ("Poisson tigre grillé", "Grillé à la perfection, ce poisson redonne toute son énergie.", "Plat", "Tous", "Aiguisé", 100, None, 0,0,0,0,0,0, 100,0, 1, 0, 1),
+    ("Tarte de la moisson", "Une tarte délicate aux fleurs de corail confites.", "Plat", "Tous", "Aiguisé", 70, None, 0,0,0,0,0,0, 60,0, 1, 0, 1),
+    ("Festin du capitaine", "Un festin digne d'un capitaine de légende.", "Plat", "Tous", "Grand Grade", 250, None, 0,0,0,0,0,0, 200,100, 1, 0, 1),
 ]
