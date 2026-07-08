@@ -20,6 +20,7 @@ from cogs.exploration import setup_exploration_commands
 from cogs.collecte import setup_collecte_commands
 from cogs.metiers import setup_metiers_commands
 from cogs.cuisine import setup_cuisine_commands
+from cogs.navigation import setup_navigation_commands
 
 app = Flask('')
 
@@ -52,6 +53,7 @@ setup_exploration_commands(bot)
 setup_collecte_commands(bot)
 setup_metiers_commands(bot)
 setup_cuisine_commands(bot)
+setup_navigation_commands(bot)
 
 @bot.event
 async def on_ready():
