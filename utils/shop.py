@@ -1,3 +1,4 @@
+import random
 from database.db import get_pool
 from data.catalogue import CATALOGUE
 
@@ -53,3 +54,30 @@ async def get_inventory(guild_id: int, user_id: int):
             ORDER BY shop_items.categorie, shop_items.nom
         """, guild_id, user_id)
     return rows
+
+
+RARETE_WEIGHTS_LOOT = {
+    "Commun": 100,
+    "Aiguisé": 35,
+    "Grade": 10,
+    "Grand Grade": 3,
+    "Suprême": 0,
+    "Mythique": 0,
+}
+
+async def get_random_loot(guild_id: int, faction: str):
+    """Tire un objet aléatoire (consommable/accessoire) pour le loot d'exploration, pondéré par rareté."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT * FROM shop_items
+            WHERE guild_id = $1 AND actif = TRUE
+              AND categorie IN ('Consommable', 'Accessoire')
+              AND (faction = 'Tous' OR faction = $2)
+        """, guild_id, faction)
+    if not rows:
+        return None
+    weights = [RARETE_WEIGHTS_LOOT.get(r["rarete"], 0) for r in rows]
+    if sum(weights) == 0:
+        return None
+    return random.choices(rows, weights=weights, k=1)[0]
