@@ -28,6 +28,7 @@ from cogs.casino import setup_casino_commands
 from cogs.bras_de_fer import setup_bras_de_fer_commands
 from cogs.concours_nourriture import setup_concours_nourriture_commands
 from cogs.regate import setup_regate_commands
+from cogs.prime_tete import setup_prime_tete_commands
 
 app = Flask('')
 
@@ -68,6 +69,7 @@ setup_casino_commands(bot)
 setup_bras_de_fer_commands(bot)
 setup_concours_nourriture_commands(bot)
 setup_regate_commands(bot)
+setup_prime_tete_commands(bot)
 
 @bot.event
 async def on_ready():
