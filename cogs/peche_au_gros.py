@@ -5,6 +5,7 @@ from database.db import get_pool
 from utils.players import get_player, add_xp
 from utils.shop import get_item_by_name
 from utils.channel_check import require_salon
+from utils.announcements import announce_level_up
 
 COUT_ENDURANCE = 20
 
@@ -132,11 +133,7 @@ class PecheAuGrosView(discord.ui.View):
         await interaction.edit_original_response(embed=embed, view=self)
 
         if niveaux_gagnes > 0:
-            await interaction.followup.send(embed=discord.Embed(
-                title="🎉 Niveau supérieur !",
-                description=f"{interaction.user.mention} passe **niveau {nouveau_niveau}** !",
-                color=0x27AE60
-            ))
+            await announce_level_up(interaction, interaction.user, nouveau_niveau)
 
     @discord.ui.button(label="Tirer sur la ligne", emoji="🎣", style=discord.ButtonStyle.primary)
     async def tirer(self, interaction: discord.Interaction, button: discord.ui.Button):
