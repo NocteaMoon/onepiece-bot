@@ -63,8 +63,14 @@ class CombatView(discord.ui.View):
         if self.enemy.get("boss"):
             titre = f"👑 BOSS — {self.enemy['nom'].capitalize()}"
         embed = discord.Embed(title=titre, color=0xC0392B)
-        embed.add_field(name="Tes PV", value=barre(self.player_pv, self.player_pv_max), inline=False)
-        embed.add_field(name="PV ennemi", value=barre(self.enemy["pv"], self.enemy["pv_max"]), inline=False)
+        embed.add_field(
+            name=f"Tes PV — {max(0, self.player_pv)}/{self.player_pv_max}",
+            value=barre(self.player_pv, self.player_pv_max), inline=False
+        )
+        embed.add_field(
+            name=f"PV ennemi — {max(0, self.enemy['pv'])}/{self.enemy['pv_max']}",
+            value=barre(self.enemy["pv"], self.enemy["pv_max"]), inline=False
+        )
         if self.log:
             embed.description = "\n".join(self.log[-4:])
         embed.set_footer(text="🌊 One Piece Bot • Combat")
