@@ -6,6 +6,7 @@ from database.db import get_pool
 from utils.players import get_player, add_xp
 from utils.combat_stats import get_effective_stats
 from utils.channel_check import require_salon
+from utils.announcements import announce_level_up
 from data.ennemis import ENNEMIS
 
 COUT_ENDURANCE = 20
@@ -90,11 +91,7 @@ class CombatView(discord.ui.View):
         await self.message.edit(embed=embed, view=self)
 
         if niveaux_gagnes > 0:
-            await interaction.followup.send(embed=discord.Embed(
-                title="🎉 Niveau supérieur !",
-                description=f"{interaction.user.mention} passe **niveau {nouveau_niveau}** !",
-                color=0x27AE60
-            ))
+            await announce_level_up(interaction, interaction.user, nouveau_niveau)
 
     async def appliquer_defaite(self):
         self.termine = True
