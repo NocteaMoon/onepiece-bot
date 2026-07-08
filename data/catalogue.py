@@ -67,6 +67,7 @@ CATALOGUE = [
     ("Racine noueuse", "Une racine terreuse, base de nombreux plats simples.", "Ingrédient", "Tous", "Commun", 6, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
     ("Champignon des embruns", "Pousse uniquement près des côtes brumeuses.", "Ingrédient", "Tous", "Aiguisé", 18, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
     ("Fleur de corail", "Une fleur rarissime qui pousse sur le corail vivant.", "Ingrédient", "Tous", "Grade", 50, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Poisson légendaire des abysses", "Une prise rarissime venue des profondeurs, prisée des plus grands chefs.", "Ingrédient", "Tous", "Grand Grade", 150, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
 
     # ===== PLATS (uniquement via /cuisiner, jamais achetables — stock à 0) =====
     ("Soupe de fortune", "Une soupe chaude et réconfortante, préparée avec le peu qu'on a.", "Plat", "Tous", "Commun", 40, None, 0,0,0,0,0,0, 40,0, 1, 0, 1),
