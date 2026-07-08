@@ -35,8 +35,6 @@ def barre(valeur, taille=10):
     return "🟦" * rempli + "⬜" * (taille - rempli)
 
 
-# ===== VERSION SOLO (PvE) =====
-
 class BrasDeFerPvEView(discord.ui.View):
     def __init__(self, guild_id, user_id, adversaire, force_joueur):
         super().__init__(timeout=45)
@@ -121,15 +119,13 @@ class BrasDeFerPvEView(discord.ui.View):
                 pass
 
 
-# ===== VERSION PVP (2 joueurs) =====
-
 class BrasDeFerPvPView(discord.ui.View):
-    def __init__(self, guild_id, p1_id, p1_name, p1_force, p2_id, p2_name, p2_force):
+    def __init__(self, guild_id, p1_member, p1_force, p2_member, p2_force):
         super().__init__(timeout=60)
         self.guild_id = guild_id
-        self.p1 = {"id": p1_id, "name": p1_name, "force": p1_force}
-        self.p2 = {"id": p2_id, "name": p2_name, "force": p2_force}
-        self.position = 50  # >50 = avantage p1, <50 = avantage p2
+        self.p1 = {"id": p1_member.id, "name": p1_member.display_name, "member": p1_member, "force": p1_force}
+        self.p2 = {"id": p2_member.id, "name": p2_member.display_name, "member": p2_member, "force": p2_force}
+        self.position = 50
         self.termine = False
         self.message = None
 
@@ -167,13 +163,9 @@ class BrasDeFerPvPView(discord.ui.View):
         await self.message.edit(embed=embed, view=self)
 
         if niveaux_g > 0:
-            gm = interaction.guild.get_member(gagnant["id"])
-            if gm:
-                await announce_level_up(interaction, gm, niveau_g)
+            await announce_level_up(interaction, gagnant["member"], niveau_g)
         if niveaux_p > 0:
-            pm = interaction.guild.get_member(perdant["id"])
-            if pm:
-                await announce_level_up(interaction, pm, niveau_p)
+            await announce_level_up(interaction, perdant["member"], niveau_p)
 
     @discord.ui.button(label="Pousser !", emoji="💪", style=discord.ButtonStyle.danger)
     async def pousser(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -211,16 +203,16 @@ class BrasDeFerPvPView(discord.ui.View):
 
 
 class BrasDeFerChallengeView(discord.ui.View):
-    def __init__(self, guild_id, challenger_id, target_id):
+    def __init__(self, guild_id, challenger: discord.Member, target: discord.Member):
         super().__init__(timeout=60)
         self.guild_id = guild_id
-        self.challenger_id = challenger_id
-        self.target_id = target_id
+        self.challenger = challenger
+        self.target = target
         self.repondu = False
         self.message = None
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user.id != self.target_id:
+        if interaction.user.id != self.target.id:
             await interaction.response.send_message("⛔ Ce défi ne t'est pas adressé !", ephemeral=True)
             return False
         return True
@@ -233,16 +225,10 @@ class BrasDeFerChallengeView(discord.ui.View):
         for c in self.children:
             c.disabled = True
 
-        p1_data = await get_player(self.guild_id, self.challenger_id)
-        p2_data = await get_player(self.guild_id, self.target_id)
-        challenger_member = interaction.guild.get_member(self.challenger_id)
-        target_member = interaction.guild.get_member(self.target_id)
+        p1_data = await get_player(self.guild_id, self.challenger.id)
+        p2_data = await get_player(self.guild_id, self.target.id)
 
-        view = BrasDeFerPvPView(
-            self.guild_id,
-            self.challenger_id, challenger_member.display_name if challenger_member else "Joueur 1", p1_data["force"],
-            self.target_id, target_member.display_name if target_member else "Joueur 2", p2_data["force"],
-        )
+        view = BrasDeFerPvPView(self.guild_id, self.challenger, p1_data["force"], self.target, p2_data["force"])
         await interaction.response.edit_message(content=None, embed=view.build_embed(), view=view)
         view.message = await interaction.original_response()
 
@@ -266,8 +252,6 @@ class BrasDeFerChallengeView(discord.ui.View):
             except discord.HTTPException:
                 pass
 
-
-# ===== COMMANDES =====
 
 @app_commands.command(name="bras_de_fer", description="Défier un PNJ de taverne en bras de fer")
 @require_salon("salon_taverne")
@@ -323,7 +307,7 @@ async def bras_de_fer_duel(interaction: discord.Interaction, adversaire: discord
         color=0x8E44AD
     )
     embed.set_footer(text="🌊 One Piece Bot • Défis de taverne • 60 secondes pour répondre")
-    view = BrasDeFerChallengeView(interaction.guild_id, interaction.user.id, adversaire.id)
+    view = BrasDeFerChallengeView(interaction.guild_id, interaction.user, adversaire)
     msg = await interaction.followup.send(embed=embed, view=view)
     view.message = msg
 
