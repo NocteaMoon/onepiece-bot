@@ -43,8 +43,14 @@ class DuelCombatView(discord.ui.View):
         embed = discord.Embed(title=f"⚔️ Duel — {self.p1['name']} VS {self.p2['name']}", color=0x8E44AD)
         if self.mise:
             embed.description = f"💰 Mise : **{self.mise:,}฿** pour le vainqueur"
-        embed.add_field(name=self.p1["name"], value=barre(self.p1["pv"], self.p1["pv_max"]), inline=False)
-        embed.add_field(name=self.p2["name"], value=barre(self.p2["pv"], self.p2["pv_max"]), inline=False)
+        embed.add_field(
+            name=f"{self.p1['name']} — {max(0, self.p1['pv'])}/{self.p1['pv_max']} PV",
+            value=barre(self.p1["pv"], self.p1["pv_max"]), inline=False
+        )
+        embed.add_field(
+            name=f"{self.p2['name']} — {max(0, self.p2['pv'])}/{self.p2['pv_max']} PV",
+            value=barre(self.p2["pv"], self.p2["pv_max"]), inline=False
+        )
         if self.log:
             embed.add_field(name="Journal", value="\n".join(self.log[-4:]), inline=False)
         tour_joueur = self.joueur(self.current_turn_id)
