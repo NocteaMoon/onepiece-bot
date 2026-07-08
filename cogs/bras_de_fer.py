@@ -56,7 +56,7 @@ class BrasDeFerView(discord.ui.View):
         embed = discord.Embed(title=f"💪 Bras de fer contre {self.adversaire['nom']}", color=0xC0392B)
         embed.description = message or "Vos mains se serrent sur la table, la tension monte..."
         embed.add_field(name="Toi ⬅️ ———— ➡️ Adversaire", value=barre(self.position), inline=False)
-        embed.set_footer(text="🌊 One Piece Bot • Bras de fer")
+        embed.set_footer(text="🌊 One Piece Bot • Défis de taverne")
         return embed
 
     async def finir(self, victoire: bool, message: str):
@@ -120,7 +120,7 @@ class BrasDeFerView(discord.ui.View):
 
 
 @app_commands.command(name="bras_de_fer", description="Défier un PNJ de taverne en bras de fer")
-@require_salon("salon_combat")
+@require_salon("salon_taverne")
 async def bras_de_fer(interaction: discord.Interaction):
     await interaction.response.defer()
     player = await get_player(interaction.guild_id, interaction.user.id)
