@@ -3,6 +3,7 @@ import random
 from database.db import get_pool
 from utils.players import get_player, add_xp
 from utils.shop import get_item_by_name
+from utils.announcements import announce_level_up
 
 COUT_ENDURANCE_COLLECTE = 10
 
@@ -62,9 +63,4 @@ async def do_gather(interaction: discord.Interaction, titre: str, verbe_action: 
     await interaction.followup.send(embed=embed)
 
     if niveaux_gagnes > 0:
-        level_embed = discord.Embed(
-            title="🎉 Niveau supérieur !",
-            description=f"{interaction.user.mention} passe **niveau {nouveau_niveau}** ! PV et endurance restaurés.",
-            color=0x27AE60
-        )
-        await interaction.followup.send(embed=level_embed)
+        await announce_level_up(interaction, interaction.user, nouveau_niveau)
