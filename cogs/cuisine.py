@@ -4,6 +4,7 @@ from database.db import get_pool
 from utils.players import get_player, add_xp
 from utils.metiers import get_rang, rang_label
 from utils.shop import get_item_by_name
+from utils.channel_check import require_salon
 from data.recettes import RECETTES
 
 async def recette_autocomplete(interaction: discord.Interaction, current: str):
@@ -17,6 +18,7 @@ async def recette_autocomplete(interaction: discord.Interaction, current: str):
 @app_commands.command(name="cuisiner", description="Cuisiner un plat à partir de tes ingrédients (réservé aux Cuisiniers)")
 @app_commands.describe(recette="Le plat à cuisiner")
 @app_commands.autocomplete(recette=recette_autocomplete)
+@require_salon("salon_peche")
 async def cuisiner(interaction: discord.Interaction, recette: str):
     await interaction.response.defer()
     player = await get_player(interaction.guild_id, interaction.user.id)
