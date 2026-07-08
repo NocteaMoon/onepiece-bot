@@ -3,13 +3,13 @@ from discord import app_commands
 from utils.gathering import do_gather
 from utils.channel_check import require_salon
 
-LIEUX_PECHE = ["une crique poissonneuse", "le ponton du port", "un banc de sable immergé", "les hauts-fonds", "l'embouchure de la rivière", "une zone de courants calmes"]
+LIEUX_PECHE = ["dans une crique poissonneuse", "au ponton du port", "sur un banc de sable immergé", "aux hauts-fonds", "à l'embouchure de la rivière", "dans une zone de courants calmes"]
 POOL_PECHE = [("Poisson argenté", 55), ("Anguille des courants", 25), ("Poisson tigre", 15), ("Étoile de mer scintillante", 5), ("RIEN", 25)]
 
-LIEUX_CHASSE = ["l'orée de la forêt", "les hautes herbes", "le flanc de la colline", "un sentier de gibier", "les broussailles denses", "une clairière isolée"]
+LIEUX_CHASSE = ["à l'orée de la forêt", "dans les hautes herbes", "sur le flanc de la colline", "le long d'un sentier de gibier", "dans les broussailles denses", "au creux d'une clairière isolée"]
 POOL_CHASSE = [("Viande de sanglier des mers", 55), ("Plume de faucon-tonnerre", 30), ("Peau de varan des dunes", 15), ("RIEN", 30)]
 
-LIEUX_RECOLTE = ["un bosquet fruitier", "une prairie sauvage", "le sous-bois humide", "les rochers moussus", "un jardin abandonné", "une pente ensoleillée"]
+LIEUX_RECOLTE = ["dans un bosquet fruitier", "dans une prairie sauvage", "au fond du sous-bois humide", "sur les rochers moussus", "dans un jardin abandonné", "sur une pente ensoleillée"]
 POOL_RECOLTE = [("Baies sucrées", 40), ("Racine noueuse", 35), ("Champignon des embruns", 20), ("Fleur de corail", 5), ("RIEN", 20)]
 
 @app_commands.command(name="pecher", description="Pêcher pour obtenir des ingrédients marins")
