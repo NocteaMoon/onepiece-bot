@@ -17,6 +17,9 @@ from cogs.marche import setup_marche_commands
 import cogs.marche_admin  # noqa: F401
 from cogs.inventaire import setup_inventaire_commands
 from cogs.exploration import setup_exploration_commands
+from cogs.collecte import setup_collecte_commands
+from cogs.metiers import setup_metiers_commands
+from cogs.cuisine import setup_cuisine_commands
 
 app = Flask('')
 
@@ -46,6 +49,9 @@ setup_economie_commands(bot)
 setup_marche_commands(bot)
 setup_inventaire_commands(bot)
 setup_exploration_commands(bot)
+setup_collecte_commands(bot)
+setup_metiers_commands(bot)
+setup_cuisine_commands(bot)
 
 @bot.event
 async def on_ready():
