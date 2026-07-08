@@ -1,7 +1,6 @@
 import discord
 from discord import app_commands
 import random
-import asyncio
 from database.db import get_pool
 from utils.players import get_player, add_xp
 from utils.channel_check import require_salon
@@ -25,7 +24,7 @@ class RegateCourseView(discord.ui.View):
     def __init__(self, guild_id, participants):
         super().__init__(timeout=90)
         self.guild_id = guild_id
-        self.participants = participants  # liste de dicts: id, name, position, force
+        self.participants = participants  # liste de dicts: id, name, member, position, force
         self.termine = False
         self.message = None
         for i, p in enumerate(self.participants):
@@ -68,9 +67,7 @@ class RegateCourseView(discord.ui.View):
             else:
                 niveaux, niveau = await add_xp(self.guild_id, p["id"], 12, 5)
             if niveaux > 0:
-                member = interaction.guild.get_member(p["id"])
-                if member:
-                    await announce_level_up(interaction, member, niveau)
+                await announce_level_up(interaction, p["member"], niveau)
 
         embed = self.build_embed(f"🏆 **{gagnant['name']}** franchit la ligne d'arrivée en tête et remporte **{cagnotte:,}฿** !")
         embed.color = 0x27AE60
@@ -104,20 +101,21 @@ class RegateCourseView(discord.ui.View):
 
 
 class RegateInscriptionView(discord.ui.View):
-    def __init__(self, guild_id, hote_id):
+    def __init__(self, guild_id, hote: discord.Member):
         super().__init__(timeout=DUREE_INSCRIPTION)
         self.guild_id = guild_id
-        self.participants_ids = [hote_id]
+        self.participants = {hote.id: hote}  # id -> discord.Member, capturé directement
         self.message = None
         self.lancee = False
 
-    def build_embed(self, participants_names):
+    def build_embed(self):
+        names = [m.mention for m in self.participants.values()]
         embed = discord.Embed(
             title="🚣 Régate — Inscriptions ouvertes !",
             description=f"Rejoins la course avant qu'elle ne démarre ! (2 à 4 participants, {MISE_PARTICIPATION}฿ de mise chacun)",
             color=0x1B3A5C
         )
-        embed.add_field(name=f"Participants ({len(participants_names)}/4)", value="\n".join(participants_names) or "Aucun", inline=False)
+        embed.add_field(name=f"Participants ({len(names)}/4)", value="\n".join(names) or "Aucun", inline=False)
         embed.set_footer(text=f"🌊 One Piece Bot • Départ dans {DUREE_INSCRIPTION}s ou dès 4 inscrits")
         return embed
 
@@ -126,10 +124,10 @@ class RegateInscriptionView(discord.ui.View):
         if self.lancee:
             await interaction.response.send_message("La course a déjà commencé !", ephemeral=True)
             return
-        if interaction.user.id in self.participants_ids:
+        if interaction.user.id in self.participants:
             await interaction.response.send_message("Tu es déjà inscrit !", ephemeral=True)
             return
-        if len(self.participants_ids) >= 4:
+        if len(self.participants) >= 4:
             await interaction.response.send_message("La régate est déjà complète (4/4) !", ephemeral=True)
             return
 
@@ -141,42 +139,43 @@ class RegateInscriptionView(discord.ui.View):
             await interaction.response.send_message(f"⛔ Il te faut {MISE_PARTICIPATION}฿ pour participer.", ephemeral=True)
             return
 
-        self.participants_ids.append(interaction.user.id)
-        names = [f"<@{uid}>" for uid in self.participants_ids]
-        await interaction.response.edit_message(embed=self.build_embed(names), view=self)
+        self.participants[interaction.user.id] = interaction.user
+        await interaction.response.edit_message(embed=self.build_embed(), view=self)
 
-        if len(self.participants_ids) >= 4:
+        if len(self.participants) >= 4:
             await self.lancer_course(interaction)
+
+    async def _construire_participants(self):
+        participants_data = []
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            for uid, member in self.participants.items():
+                p_data = await get_player(self.guild_id, uid)
+                await conn.execute(
+                    "UPDATE players SET endurance = endurance - $3, berrys = berrys - $4 WHERE guild_id=$1 AND user_id=$2",
+                    self.guild_id, uid, COUT_ENDURANCE, MISE_PARTICIPATION
+                )
+                participants_data.append({
+                    "id": uid, "name": member.display_name, "member": member,
+                    "position": 0, "force": p_data["force"]
+                })
+        return participants_data
 
     async def lancer_course(self, interaction):
         self.lancee = True
         for c in self.children:
             c.disabled = True
 
-        participants = []
-        pool = get_pool()
-        async with pool.acquire() as conn:
-            for uid in self.participants_ids:
-                p_data = await get_player(self.guild_id, uid)
-                await conn.execute(
-                    "UPDATE players SET endurance = endurance - $3, berrys = berrys - $4 WHERE guild_id=$1 AND user_id=$2",
-                    self.guild_id, uid, COUT_ENDURANCE, MISE_PARTICIPATION
-                )
-                member = interaction.guild.get_member(uid)
-                participants.append({
-                    "id": uid, "name": member.display_name if member else "Joueur",
-                    "position": 0, "force": p_data["force"]
-                })
-
-        course_view = RegateCourseView(self.guild_id, participants)
+        participants_data = await self._construire_participants()
+        course_view = RegateCourseView(self.guild_id, participants_data)
         embed = course_view.build_embed("🏁 Top départ ! Que la meilleure équipe l'emporte !")
-        await interaction.edit_original_response(embed=embed, view=course_view)
+        await interaction.response.edit_message(embed=embed, view=course_view)
         course_view.message = await interaction.original_response()
 
     async def on_timeout(self):
         if self.lancee:
             return
-        if len(self.participants_ids) < 2:
+        if len(self.participants) < 2:
             for c in self.children:
                 c.disabled = True
             if self.message:
@@ -186,29 +185,12 @@ class RegateInscriptionView(discord.ui.View):
                     pass
             return
 
-        # Lance avec les participants actuels (2 ou 3)
-        fake_interaction = None
         self.lancee = True
         for c in self.children:
             c.disabled = True
 
-        participants = []
-        pool = get_pool()
-        async with pool.acquire() as conn:
-            for uid in self.participants_ids:
-                p_data = await get_player(self.guild_id, uid)
-                await conn.execute(
-                    "UPDATE players SET endurance = endurance - $3, berrys = berrys - $4 WHERE guild_id=$1 AND user_id=$2",
-                    self.guild_id, uid, COUT_ENDURANCE, MISE_PARTICIPATION
-                )
-                guild = self.message.guild if self.message else None
-                member = guild.get_member(uid) if guild else None
-                participants.append({
-                    "id": uid, "name": member.display_name if member else "Joueur",
-                    "position": 0, "force": p_data["force"]
-                })
-
-        course_view = RegateCourseView(self.guild_id, participants)
+        participants_data = await self._construire_participants()
+        course_view = RegateCourseView(self.guild_id, participants_data)
         embed = course_view.build_embed("🏁 Le temps d'inscription est écoulé, top départ !")
         if self.message:
             try:
@@ -233,8 +215,8 @@ async def regate(interaction: discord.Interaction):
         await interaction.followup.send(f"⛔ Il te faut au moins {MISE_PARTICIPATION}฿ pour organiser une régate.")
         return
 
-    view = RegateInscriptionView(interaction.guild_id, interaction.user.id)
-    embed = view.build_embed([interaction.user.mention])
+    view = RegateInscriptionView(interaction.guild_id, interaction.user)
+    embed = view.build_embed()
     msg = await interaction.followup.send(embed=embed, view=view)
     view.message = msg
 
