@@ -58,9 +58,9 @@ class CombatView(discord.ui.View):
         return True
 
     def build_embed(self):
-        titre = f"⚔️ Combat contre {self.enemy['nom']}"
+        titre = f"⚔️ Combat — {self.enemy['nom'].capitalize()}"
         if self.enemy.get("boss"):
-            titre = f"👑 BOSS — {titre}"
+            titre = f"👑 BOSS — {self.enemy['nom'].capitalize()}"
         embed = discord.Embed(title=titre, color=0xC0392B)
         embed.add_field(name="Tes PV", value=barre(self.player_pv, self.player_pv_max), inline=False)
         embed.add_field(name="PV ennemi", value=barre(self.enemy["pv"], self.enemy["pv_max"]), inline=False)
@@ -293,7 +293,7 @@ async def combattre(interaction: discord.Interaction):
     player_pv_combat = player["pv"] + eff["bonus_pv_combat"]
 
     view = CombatView(interaction.guild_id, interaction.user.id, enemy, player_pv_combat, player["pv_max"], eff)
-    intro = f"👑 Un **{enemy['nom']}** légendaire se dresse devant toi !" if enemy.get("boss") else f"Un **{enemy['nom']}** te barre la route !"
+    intro = f"👑 **{enemy['nom'].capitalize()}** légendaire se dresse devant toi !" if enemy.get("boss") else f"**{enemy['nom'].capitalize()}** te barre la route !"
     embed = view.build_embed()
     embed.description = intro
     msg = await interaction.followup.send(embed=embed, view=view)
