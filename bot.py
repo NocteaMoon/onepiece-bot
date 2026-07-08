@@ -29,6 +29,9 @@ from cogs.bras_de_fer import setup_bras_de_fer_commands
 from cogs.concours_nourriture import setup_concours_nourriture_commands
 from cogs.regate import setup_regate_commands
 from cogs.prime_tete import setup_prime_tete_commands
+from cogs.chasse_tresor import setup_chasse_tresor_commands
+from cogs.raid_boss import setup_raid_boss_commands
+from cogs.tournoi import setup_tournoi_commands
 
 app = Flask('')
 
@@ -70,6 +73,9 @@ setup_bras_de_fer_commands(bot)
 setup_concours_nourriture_commands(bot)
 setup_regate_commands(bot)
 setup_prime_tete_commands(bot)
+setup_chasse_tresor_commands(bot)
+setup_raid_boss_commands(bot)
+setup_tournoi_commands(bot)
 
 @bot.event
 async def on_ready():
