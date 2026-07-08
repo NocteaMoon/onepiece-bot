@@ -4,11 +4,11 @@ import random
 from database.db import get_pool
 from utils.players import get_player, add_xp
 from utils.channel_check import require_salon
+from utils.announcements import announce_level_up
 from data.mers import MERS
 
 MER_CHOICES = [app_commands.Choice(name=f"{nom} (niv. {niv}+)", value=nom) for nom, niv, _, _, _ in MERS]
 
-# (type, poids)
 EVENEMENTS = [
     ("calme", 40),
     ("courant_favorable", 20),
@@ -122,11 +122,7 @@ async def voyager(interaction: discord.Interaction, destination: app_commands.Ch
     await interaction.followup.send(embed=embed)
 
     if niveaux_gagnes > 0:
-        await interaction.followup.send(embed=discord.Embed(
-            title="🎉 Niveau supérieur !",
-            description=f"{interaction.user.mention} passe **niveau {nouveau_niveau}** !",
-            color=0x27AE60
-        ))
+        await announce_level_up(interaction, interaction.user, nouveau_niveau)
 
 
 def setup_navigation_commands(bot):
