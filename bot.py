@@ -25,6 +25,7 @@ from cogs.peche_au_gros import setup_peche_au_gros_commands
 from cogs.combat import setup_combat_commands
 from cogs.duel import setup_duel_commands
 from cogs.casino import setup_casino_commands
+from cogs.bras_de_fer import setup_bras_de_fer_commands
 
 app = Flask('')
 
@@ -62,6 +63,7 @@ setup_peche_au_gros_commands(bot)
 setup_combat_commands(bot)
 setup_duel_commands(bot)
 setup_casino_commands(bot)
+setup_bras_de_fer_commands(bot)
 
 @bot.event
 async def on_ready():
