@@ -5,6 +5,7 @@ from database.db import get_pool
 from utils.players import get_player, add_xp
 from utils.shop import get_random_loot
 from utils.channel_check import require_salon
+from utils.announcements import announce_level_up
 
 COUT_ENDURANCE = 15
 
@@ -117,12 +118,7 @@ async def explorer(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
     if niveaux_gagnes > 0:
-        level_embed = discord.Embed(
-            title="🎉 Niveau supérieur !",
-            description=f"{interaction.user.mention} passe **niveau {nouveau_niveau}** ! PV et endurance entièrement restaurés.",
-            color=0x27AE60
-        )
-        await interaction.followup.send(embed=level_embed)
+        await announce_level_up(interaction, interaction.user, nouveau_niveau)
 
 
 def setup_exploration_commands(bot):
