@@ -81,8 +81,14 @@ class PecheAuGrosView(discord.ui.View):
         desc = message or self.tier["intro"]
         desc += f"\n\n💰 Butin potentiel : {self.tier['berrys_min']}-{self.tier['berrys_max']} Berrys{self.loot_text()}"
         embed.description = desc
-        embed.add_field(name="Tension de la ligne", value=barre(self.tension, plein="🟥"), inline=False)
-        embed.add_field(name="Résistance du poisson", value=barre(self.stamina, self.stamina_max), inline=False)
+        embed.add_field(
+            name=f"Tension de la ligne — {min(100, self.tension)}/100",
+            value=barre(self.tension, plein="🟥"), inline=False
+        )
+        embed.add_field(
+            name=f"Résistance du poisson — {max(0, self.stamina)}/{self.stamina_max}",
+            value=barre(self.stamina, self.stamina_max), inline=False
+        )
         embed.set_footer(text=f"🌊 One Piece Bot • Tours restants : {self.tours_restants}")
         return embed
 
