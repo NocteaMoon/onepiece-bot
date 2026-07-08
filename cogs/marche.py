@@ -3,6 +3,7 @@ from discord import app_commands
 from database.db import get_pool
 from utils.players import get_player
 from utils.shop import seed_shop_if_needed, get_visible_items, get_item_by_id
+from utils.channel_check import require_salon
 
 RARETE_COLORS = {
     "Commun": 0x95A5A6,
@@ -20,6 +21,7 @@ CATEGORIE_CHOICES = [
     app_commands.Choice(name="Corps", value="Corps"),
     app_commands.Choice(name="Navires", value="Navire"),
     app_commands.Choice(name="Armes", value="Arme"),
+    app_commands.Choice(name="Ingrédients", value="Ingrédient"),
 ]
 
 marche_group = app_commands.Group(name="marche", description="Le marché aux trésors — achète ton équipement")
@@ -35,6 +37,7 @@ async def item_autocomplete(interaction: discord.Interaction, current: str):
 @marche_group.command(name="voir", description="Parcourir le marché")
 @app_commands.describe(categorie="Filtrer par catégorie")
 @app_commands.choices(categorie=CATEGORIE_CHOICES)
+@require_salon("salon_boutique")
 async def marche_voir(interaction: discord.Interaction, categorie: app_commands.Choice[str] = None):
     await interaction.response.defer()
     player = await get_player(interaction.guild_id, interaction.user.id)
@@ -67,6 +70,7 @@ async def marche_voir(interaction: discord.Interaction, categorie: app_commands.
 @marche_group.command(name="infos", description="Voir le détail d'un objet du marché")
 @app_commands.describe(objet="L'objet à consulter")
 @app_commands.autocomplete(objet=item_autocomplete)
+@require_salon("salon_boutique")
 async def marche_infos(interaction: discord.Interaction, objet: int):
     await interaction.response.defer()
     await seed_shop_if_needed(interaction.guild_id)
@@ -101,6 +105,7 @@ async def marche_infos(interaction: discord.Interaction, objet: int):
 @marche_group.command(name="acheter", description="Acheter un objet du marché")
 @app_commands.describe(objet="L'objet à acheter", quantite="Quantité (1 par défaut)")
 @app_commands.autocomplete(objet=item_autocomplete)
+@require_salon("salon_boutique")
 async def marche_acheter(interaction: discord.Interaction, objet: int, quantite: int = 1):
     await interaction.response.defer()
     await seed_shop_if_needed(interaction.guild_id)
