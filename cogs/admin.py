@@ -31,6 +31,7 @@ SALON_CHOICES = [
     app_commands.Choice(name="Succès", value="salon_succes"),
     app_commands.Choice(name="Taverne (défis annexes)", value="salon_taverne"),
     app_commands.Choice(name="Régates", value="salon_regates"),
+    app_commands.Choice(name="Chasse au trésor", value="salon_tresor"),
 ]
 
 @config_group.command(name="salon", description="Définir un salon pour une fonctionnalité")
