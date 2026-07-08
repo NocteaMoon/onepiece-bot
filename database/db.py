@@ -11,6 +11,7 @@ SALON_COLUMNS = [
     "salon_exploration", "salon_combat", "salon_duel", "salon_peche", "salon_casino",
     "salon_equipages", "salon_marine", "salon_revolutionnaires",
     "salon_classements", "salon_quetes", "salon_succes",
+    "salon_taverne",
 ]
 
 async def init_db():
