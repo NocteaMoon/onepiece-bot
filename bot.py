@@ -14,8 +14,9 @@ from cogs.welcome import setup_welcome_commands, WelcomeVerifyView
 from cogs.profil import setup_profil_commands
 from cogs.economie import setup_economie_commands
 from cogs.marche import setup_marche_commands
-import cogs.marche_admin  # noqa: F401 (attache le sous-groupe /config marche)
+import cogs.marche_admin  # noqa: F401
 from cogs.inventaire import setup_inventaire_commands
+from cogs.exploration import setup_exploration_commands
 
 app = Flask('')
 
@@ -44,6 +45,7 @@ setup_profil_commands(bot)
 setup_economie_commands(bot)
 setup_marche_commands(bot)
 setup_inventaire_commands(bot)
+setup_exploration_commands(bot)
 
 @bot.event
 async def on_ready():
