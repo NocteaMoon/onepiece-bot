@@ -4,6 +4,7 @@ import random
 import datetime
 from database.db import get_pool
 from utils.players import get_player
+from utils.channel_check import require_salon
 
 economie_group = app_commands.Group(name="economie", description="Commandes d'économie")
 
@@ -26,7 +27,6 @@ TRAVAUX = [
 ]
 
 COOLDOWN_TRAVAIL_MINUTES = 30
-
 _last_work = {}
 
 async def require_player(interaction: discord.Interaction):
@@ -37,6 +37,7 @@ async def require_player(interaction: discord.Interaction):
     return player
 
 @economie_group.command(name="travailler", description="Faire un petit boulot pour gagner des Berrys")
+@require_salon("salon_economie")
 async def travailler(interaction: discord.Interaction):
     await interaction.response.defer()
     player = await require_player(interaction)
@@ -76,7 +77,7 @@ async def travailler(interaction: discord.Interaction):
 banque_group = app_commands.Group(name="banque", description="Gérer ton compte en banque", parent=economie_group)
 
 @banque_group.command(name="depot", description="Déposer des Berrys en banque (protégés en cas de défaite)")
-@app_commands.describe(montant="Le montant à déposer (ou 'tout' via le montant total)")
+@app_commands.describe(montant="Le montant à déposer")
 async def banque_depot(interaction: discord.Interaction, montant: int):
     await interaction.response.defer()
     player = await require_player(interaction)
