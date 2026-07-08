@@ -3,15 +3,17 @@ from database.db import get_pool
 from data.catalogue import CATALOGUE
 
 async def seed_shop_if_needed(guild_id: int):
+    """Insère les objets du catalogue manquants (idempotent : ne duplique jamais, ajoute juste les nouveautés)."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        already = await conn.fetchrow("SELECT 1 FROM shop_seeded WHERE guild_id = $1", guild_id)
-        if already:
-            return
+        existing = await conn.fetch("SELECT nom FROM shop_items WHERE guild_id = $1", guild_id)
+        existing_names = {r["nom"] for r in existing}
         for item in CATALOGUE:
             (nom, description, categorie, faction, rarete, prix, slot,
              b_force, b_defense, b_vitesse, b_agilite, b_pv, b_chance,
              soin_pv, soin_endurance, durabilite_max, stock, niveau_requis) = item
+            if nom in existing_names:
+                continue
             await conn.execute("""
                 INSERT INTO shop_items (
                     guild_id, nom, description, categorie, faction, rarete, prix, slot,
@@ -21,7 +23,6 @@ async def seed_shop_if_needed(guild_id: int):
             """, guild_id, nom, description, categorie, faction, rarete, prix, slot,
                  b_force, b_defense, b_vitesse, b_agilite, b_pv, b_chance,
                  soin_pv, soin_endurance, durabilite_max, stock, niveau_requis)
-        await conn.execute("INSERT INTO shop_seeded (guild_id) VALUES ($1)", guild_id)
 
 
 async def get_visible_items(guild_id: int, faction: str, categorie: str = None):
@@ -34,13 +35,20 @@ async def get_visible_items(guild_id: int, faction: str, categorie: str = None):
     query += " ORDER BY categorie, prix"
     async with pool.acquire() as conn:
         rows = await conn.fetch(query, *params)
-    return rows
+    # Les plats ne sont jamais achetables directement, seulement via /cuisiner
+    return [r for r in rows if r["categorie"] != "Plat"]
 
 
 async def get_item_by_id(guild_id: int, item_id: int):
     pool = get_pool()
     async with pool.acquire() as conn:
         return await conn.fetchrow("SELECT * FROM shop_items WHERE guild_id = $1 AND id = $2", guild_id, item_id)
+
+
+async def get_item_by_name(guild_id: int, nom: str):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        return await conn.fetchrow("SELECT * FROM shop_items WHERE guild_id = $1 AND nom = $2", guild_id, nom)
 
 
 async def get_inventory(guild_id: int, user_id: int):
