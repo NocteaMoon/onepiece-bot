@@ -4,6 +4,7 @@ import random
 from database.db import get_pool
 from utils.players import get_player, add_xp
 from utils.shop import get_random_loot
+from utils.channel_check import require_salon
 
 COUT_ENDURANCE = 15
 
@@ -14,7 +15,6 @@ LIEUX = [
     "le sentier côtier", "les rochers battus par les vents", "la clairière secrète",
 ]
 
-# (type, poids, xp_min, xp_max, xp_cache_min, xp_cache_max)
 OUTCOMES = [
     ("rien", 30, 5, 12, 2, 5),
     ("petits_berrys", 25, 8, 15, 3, 6),
@@ -28,6 +28,7 @@ OUTCOMES = [
 ]
 
 @app_commands.command(name="explorer", description="Explorer les environs pour trouver des ressources")
+@require_salon("salon_exploration")
 async def explorer(interaction: discord.Interaction):
     await interaction.response.defer()
     player = await get_player(interaction.guild_id, interaction.user.id)
