@@ -22,6 +22,7 @@ from cogs.metiers import setup_metiers_commands
 from cogs.cuisine import setup_cuisine_commands
 from cogs.navigation import setup_navigation_commands
 from cogs.peche_au_gros import setup_peche_au_gros_commands
+from cogs.combat import setup_combat_commands
 
 app = Flask('')
 
@@ -56,6 +57,7 @@ setup_metiers_commands(bot)
 setup_cuisine_commands(bot)
 setup_navigation_commands(bot)
 setup_peche_au_gros_commands(bot)
+setup_combat_commands(bot)
 
 @bot.event
 async def on_ready():
