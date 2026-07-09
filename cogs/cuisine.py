@@ -5,6 +5,7 @@ from utils.players import get_player, add_xp
 from utils.metiers import get_rang, rang_label
 from utils.shop import get_item_by_name
 from utils.channel_check import require_salon
+from utils.quetes import increment_quest_progress
 from data.recettes import RECETTES
 
 async def recette_autocomplete(interaction: discord.Interaction, current: str):
@@ -91,6 +92,7 @@ async def cuisiner(interaction: discord.Interaction, recette: str):
                                 interaction.guild_id, interaction.user.id, metier_xp_gain)
 
     niveaux_gagnes, nouveau_niveau = await add_xp(interaction.guild_id, interaction.user.id, 8, 4)
+    await increment_quest_progress(interaction.guild_id, interaction.user.id, "cuisiner")
 
     nouveau_metier_xp = player["metier_xp"] + metier_xp_gain
     nouveau_rang = get_rang(nouveau_metier_xp)
