@@ -12,7 +12,7 @@ SALON_COLUMNS = [
     "salon_equipages", "salon_marine", "salon_revolutionnaires",
     "salon_classements", "salon_quetes", "salon_succes",
     "salon_taverne", "salon_regates", "salon_tresor", "salon_creation", "salon_guilde",
-    "salon_carnet",
+    "salon_carnet", "salon_recompenses",
 ]
 
 async def init_db():
@@ -163,6 +163,10 @@ async def init_db():
         await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS metier_xp INT DEFAULT 0")
         await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS metier_rang INT DEFAULT 0")
         await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS voyage_protege INT DEFAULT 0")
+        await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS last_daily TIMESTAMP")
+        await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS daily_streak INT DEFAULT 0")
+        await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS last_weekly TIMESTAMP")
+        await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS last_monthly TIMESTAMP")
 
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS shop_items (
