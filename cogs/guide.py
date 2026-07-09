@@ -67,13 +67,16 @@ def embed_quetes():
     embed = discord.Embed(
         title="📜 Quêtes",
         description=(
-            "**`/quetes`** — Affiche tes quêtes journalières (renouvelées chaque jour) et hebdomadaires "
-            "(renouvelées chaque semaine), avec ta progression en direct.\n\n"
-            "Pas besoin de les activer : ta progression avance **automatiquement** en jouant normalement "
-            "(explorer, gagner des combats, pêcher/chasser/récolter, travailler, cuisiner...).\n\n"
-            "Une fois une quête à 100%, clique sur **🎁 Réclamer les récompenses** dans `/quetes` pour "
-            "encaisser tes Berrys et ton XP — les gains ne sont jamais automatiques, il faut venir les chercher !\n\n"
-            "💡 Astuce : les quêtes hebdomadaires rapportent beaucoup plus que les journalières, garde un œil dessus."
+            "Trois types de quêtes différents, tous regroupés sous `/quetes` :\n\n"
+            "**`/quetes journalieres`** — 3 quêtes renouvelées chaque jour + 2 hebdomadaires renouvelées chaque semaine. "
+            "Progression automatique en jouant, bouton 🎁 pour réclamer une fois terminées.\n\n"
+            "**`/quetes principale`** — Une histoire à suivre, chapitre par chapitre. Une seule à la fois, "
+            "la suivante se débloque automatiquement une fois la précédente réclamée. Certains chapitres "
+            "débloquent même un titre exclusif !\n\n"
+            "**`/quetes secondaires`** — Des missions optionnelles au choix (2 maximum en même temps). "
+            "Utilise `/quetes secondaire_rejoindre` pour en accepter une, `/quetes secondaire_abandonner` "
+            "pour en libérer une si tu changes d'avis.\n\n"
+            "💡 Toutes progressent automatiquement dès que tu joues normalement (explorer, combattre, voyager...)."
         ),
         color=0xD4A017
     )
