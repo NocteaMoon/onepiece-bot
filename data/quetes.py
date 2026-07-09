@@ -29,4 +29,10 @@ OBJECTIFS = {
         "weekly_min": 5, "weekly_max": 8,
         "berrys_per": 30, "xp_per": 10,
     },
+    "voyager": {
+        "label": "Voyager vers une autre mer {cible} fois",
+        "daily_min": 1, "daily_max": 1,
+        "weekly_min": 2, "weekly_max": 4,
+        "berrys_per": 25, "xp_per": 12,
+    },
 }
