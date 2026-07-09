@@ -35,6 +35,7 @@ from cogs.tournoi import setup_tournoi_commands
 from cogs.equipage import setup_equipage_commands
 from cogs.marine import setup_marine_commands
 from cogs.revolution import setup_revolution_commands
+from cogs.guilde import setup_guilde_commands
 
 app = Flask('')
 
@@ -82,6 +83,7 @@ setup_tournoi_commands(bot)
 setup_equipage_commands(bot)
 setup_marine_commands(bot)
 setup_revolution_commands(bot)
+setup_guilde_commands(bot)
 
 @bot.event
 async def on_ready():
