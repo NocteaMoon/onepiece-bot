@@ -39,6 +39,7 @@ from cogs.guilde import setup_guilde_commands
 from cogs.forgeron import setup_forgeron_commands
 from cogs.medecin import setup_medecin_commands
 from cogs.navigateur import setup_navigateur_commands
+from cogs.guide import setup_guide_commands, GuideView
 
 app = Flask('')
 
@@ -90,6 +91,7 @@ setup_guilde_commands(bot)
 setup_forgeron_commands(bot)
 setup_medecin_commands(bot)
 setup_navigateur_commands(bot)
+setup_guide_commands(bot)
 
 @bot.event
 async def on_ready():
@@ -101,6 +103,7 @@ async def on_ready():
     bot.add_view(TicketPanelView())
     bot.add_view(TicketCloseView())
     bot.add_view(WelcomeVerifyView())
+    bot.add_view(GuideView())
     try:
         synced = await bot.tree.sync()
         print(f"{len(synced)} commande(s) slash synchronisée(s).")
