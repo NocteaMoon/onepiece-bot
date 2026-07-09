@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 from utils.players import get_player, create_player, xp_requis
+from utils.channel_check import require_salon
 
 FACTION_COLORS = {
     "Pirate": 0x8E44AD,
@@ -18,18 +19,19 @@ FACTION_EMOJIS = {
 
 ESPACE = "\u200b"
 
-@app_commands.command(name="commencer", description="Créer ton personnage et débuter l'aventure !")
+@app_commands.command(name="commencer", description="Creer ton personnage et debuter l aventure")
 @app_commands.choices(faction=[
-    app_commands.Choice(name="🏴‍☠️ Pirate — liberté, primes et trésors", value="Pirate"),
-    app_commands.Choice(name="⚓ Marine — justice, grades et patrouilles", value="Marine"),
-    app_commands.Choice(name="🔥 Révolutionnaire — l'ombre et la révolte", value="Révolutionnaire"),
-    app_commands.Choice(name="🏘️ Civil — artisanat, métiers et commerce", value="Civil"),
+    app_commands.Choice(name="Pirate - liberte, primes et tresors", value="Pirate"),
+    app_commands.Choice(name="Marine - justice, grades et patrouilles", value="Marine"),
+    app_commands.Choice(name="Revolutionnaire - l ombre et la revolte", value="Révolutionnaire"),
+    app_commands.Choice(name="Civil - artisanat, metiers et commerce", value="Civil"),
 ])
+@require_salon("salon_creation")
 async def commencer(interaction: discord.Interaction, faction: app_commands.Choice[str]):
     await interaction.response.defer()
     existing = await get_player(interaction.guild_id, interaction.user.id)
     if existing:
-        await interaction.followup.send("Tu as déjà un personnage ! Consulte-le avec `/profil` 🏴‍☠️")
+        await interaction.followup.send("Tu as deja un personnage ! Consulte-le avec /profil")
         return
 
     await create_player(interaction.guild_id, interaction.user.id, faction.value)
@@ -37,10 +39,10 @@ async def commencer(interaction: discord.Interaction, faction: app_commands.Choi
     embed = discord.Embed(
         title="🌊 Bienvenue dans la Grande Aventure !",
         description=(
-            f"{interaction.user.mention}, ton périple commence à **East Blue** en tant que **{faction.name}**.\n\n"
-            "💰 Tu démarres avec **100 Berrys**\n"
-            "📜 Consulte ton profil avec `/profil`\n"
-            "🗺️ L'aventure ne fait que commencer..."
+            f"{interaction.user.mention}, ton periple commence a **East Blue** en tant que **{faction.name}**.\n\n"
+            "Tu demarres avec **100 Berrys**\n"
+            "Consulte ton profil avec /profil\n"
+            "L aventure ne fait que commencer..."
         ),
         color=FACTION_COLORS[faction.value]
     )
@@ -49,17 +51,17 @@ async def commencer(interaction: discord.Interaction, faction: app_commands.Choi
     await interaction.followup.send(embed=embed)
 
 
-@app_commands.command(name="profil", description="Afficher le profil d'un joueur")
-@app_commands.describe(membre="Le membre dont tu veux voir le profil (toi par défaut)")
+@app_commands.command(name="profil", description="Afficher le profil d un joueur")
+@app_commands.describe(membre="Le membre dont tu veux voir le profil (toi par defaut)")
 async def profil(interaction: discord.Interaction, membre: discord.Member = None):
     await interaction.response.defer()
     cible = membre or interaction.user
     player = await get_player(interaction.guild_id, cible.id)
     if player is None:
         if cible == interaction.user:
-            await interaction.followup.send("Tu n'as pas encore de personnage ! Lance `/commencer` pour débuter l'aventure 🏴‍☠️")
+            await interaction.followup.send("Tu n as pas encore de personnage ! Lance /commencer pour debuter l aventure")
         else:
-            await interaction.followup.send(f"{cible.display_name} n'a pas encore de personnage.")
+            await interaction.followup.send(f"{cible.display_name} n a pas encore de personnage.")
         return
 
     faction = player["faction"]
@@ -79,7 +81,7 @@ async def profil(interaction: discord.Interaction, membre: discord.Member = None
             f"Niveau **{player['niveau']}**\n"
             f"XP : {player['xp']}/{xp_prochain}\n"
             f"Titre : {player['titre'] or 'Aucun'}\n"
-            f"Métier : {player['metier'] or 'Aucun'}\n{ESPACE}"
+            f"Metier : {player['metier'] or 'Aucun'}\n{ESPACE}"
         ),
         inline=True
     )
@@ -99,14 +101,14 @@ async def profil(interaction: discord.Interaction, membre: discord.Member = None
         value=(
             f"PV : {player['pv']}/{player['pv_max']}\n"
             f"Endurance : {player['endurance']}/{player['endurance_max']}\n"
-            f"Force {player['force']} • Déf {player['defense']}\n"
-            f"Vit {player['vitesse']} • Agi {player['agilite']}\n{ESPACE}"
+            f"Force {player['force']} - Def {player['defense']}\n"
+            f"Vit {player['vitesse']} - Agi {player['agilite']}\n{ESPACE}"
         ),
         inline=True
     )
 
     fruit = player["fruit"] or "Aucun"
-    eveil = " (éveillé ✨)" if player["fruit_eveil"] else ""
+    eveil = " (eveille)" if player["fruit_eveil"] else ""
     haki_parts = []
     if player["haki_armement"] > 0:
         haki_parts.append(f"Armement {player['haki_armement']}")
@@ -114,7 +116,7 @@ async def profil(interaction: discord.Interaction, membre: discord.Member = None
         haki_parts.append(f"Observation {player['haki_observation']}")
     if player["haki_rois"] > 0:
         haki_parts.append(f"Rois {player['haki_rois']}")
-    haki = " • ".join(haki_parts) if haki_parts else "Non éveillé"
+    haki = " - ".join(haki_parts) if haki_parts else "Non eveille"
 
     embed.add_field(
         name="✨ Pouvoirs",
@@ -124,7 +126,7 @@ async def profil(interaction: discord.Interaction, membre: discord.Member = None
 
     embed.add_field(
         name="🗺️ Position",
-        value=f"Mer : {player['mer']}\nÎle : {player['ile']}\n{ESPACE}",
+        value=f"Mer : {player['mer']}\nIle : {player['ile']}\n{ESPACE}",
         inline=True
     )
 
@@ -133,7 +135,7 @@ async def profil(interaction: discord.Interaction, membre: discord.Member = None
         grade = f" ({player['grade_equipage']})" if player["grade_equipage"] else ""
         equipage = f"ID {player['equipage_id']}{grade}"
     embed.add_field(
-        name="🏴‍☠️ Équipage",
+        name="🏴‍☠️ Equipage",
         value=f"{equipage}\nFaction : {faction}\n{ESPACE}",
         inline=True
     )
