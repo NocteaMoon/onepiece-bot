@@ -161,6 +161,7 @@ async def init_db():
         """)
         await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS metier_xp INT DEFAULT 0")
         await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS metier_rang INT DEFAULT 0")
+        await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS voyage_protege INT DEFAULT 0")
 
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS shop_items (
