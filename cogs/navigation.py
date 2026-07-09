@@ -49,7 +49,11 @@ async def voyager(interaction: discord.Interaction, destination: app_commands.Ch
         await interaction.followup.send(f"😮‍💨 Il te faut **{cout_endurance}** endurance pour ce voyage (tu as {player['endurance']}). Repose-toi un peu !")
         return
 
-    evenement = random.choices([e[0] for e in EVENEMENTS], weights=[e[1] for e in EVENEMENTS], k=1)[0]
+    protege = player["voyage_protege"] > 0
+    if protege:
+        evenement = "calme"
+    else:
+        evenement = random.choices([e[0] for e in EVENEMENTS], weights=[e[1] for e in EVENEMENTS], k=1)[0]
 
     pv_perte = 0
     endurance_extra = 0
@@ -59,7 +63,10 @@ async def voyager(interaction: discord.Interaction, destination: app_commands.Ch
     xp_bonus = 0
 
     if evenement == "calme":
-        message = f"La traversée vers **{nom_mer}** se déroule sans encombre, sous un ciel dégagé."
+        if protege:
+            message = f"🧭 Grâce aux conseils avisés d'un Navigateur, la traversée vers **{nom_mer}** se déroule sans le moindre accroc !"
+        else:
+            message = f"La traversée vers **{nom_mer}** se déroule sans encombre, sous un ciel dégagé."
     elif evenement == "courant_favorable":
         endurance_extra = -5
         xp_bonus = 10
@@ -102,6 +109,12 @@ async def voyager(interaction: discord.Interaction, destination: app_commands.Ch
                 WHERE guild_id=$1 AND user_id=$2
             """, interaction.guild_id, interaction.user.id, nom_mer, ile_arrivee,
                  cout_berrys + berrys_perte, berrys_bonus, nouveau_pv, nouvelle_endurance)
+
+            if protege:
+                await conn.execute(
+                    "UPDATE players SET voyage_protege = GREATEST(0, voyage_protege - 1) WHERE guild_id=$1 AND user_id=$2",
+                    interaction.guild_id, interaction.user.id
+                )
 
             if durabilite_perte > 0:
                 for item_id in [current["equip_arme_principale"], current["equip_corps"]]:
