@@ -1,5 +1,6 @@
 import discord
 from discord import app_commands
+from utils.channel_check import require_salon
 
 def embed_accueil():
     embed = discord.Embed(
@@ -186,6 +187,7 @@ class GuideView(discord.ui.View):
 
 
 @app_commands.command(name="guide", description="Ouvrir le carnet de bord de l'aventurier (guide du joueur)")
+@require_salon("salon_carnet")
 async def guide(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed_accueil(), view=GuideView())
 
