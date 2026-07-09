@@ -35,6 +35,7 @@ SALON_DEFINITIONS = [
     ("Creation de personnage", "salon_creation"),
     ("Guilde des metiers", "salon_guilde"),
     ("Carnet de bord (guide)", "salon_carnet"),
+    ("Recompenses (daily/weekly/monthly)", "salon_recompenses"),
 ]
 
 async def salon_type_autocomplete(interaction: discord.Interaction, current: str):
