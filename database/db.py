@@ -207,6 +207,18 @@ async def init_db():
             )
         """)
 
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS crews (
+                id SERIAL PRIMARY KEY,
+                guild_id BIGINT,
+                nom TEXT,
+                drapeau_url TEXT,
+                capitaine_id BIGINT,
+                coffre_berrys BIGINT DEFAULT 0,
+                cree_le TIMESTAMP DEFAULT NOW()
+            )
+        """)
+
     print("Base de données connectée et tables vérifiées.")
 
 def get_pool():
