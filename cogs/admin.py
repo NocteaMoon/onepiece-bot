@@ -132,5 +132,32 @@ async def permission_liste(interaction: discord.Interaction):
         embed.add_field(name=group, value=", ".join(roles), inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-def setup_admin_commands(bot):
-    bot.tree.add_command(config_group)
+
+joueur_admin_group = app_commands.Group(name="joueur", description="Outils admin sur les fiches joueurs", parent=config_group)
+
+FACTION_ADMIN_CHOICES = [
+    app_commands.Choice(name="Pirate", value="Pirate"),
+    app_commands.Choice(name="Marine", value="Marine"),
+    app_commands.Choice(name="Révolutionnaire", value="Révolutionnaire"),
+    app_commands.Choice(name="Civil", value="Civil"),
+]
+
+@joueur_admin_group.command(name="faction", description="Forcer la faction d'un joueur (outil admin/test)")
+@app_commands.describe(membre="Le joueur concerné", faction="La nouvelle faction")
+@app_commands.choices(faction=FACTION_ADMIN_CHOICES)
+async def joueur_faction(interaction: discord.Interaction, membre: discord.Member, faction: app_commands.Choice[str]):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT equipage_id, metier FROM players WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, membre.id)
+        if row is None:
+            await interaction.response.send_message(f"{membre.display_name} n'a pas encore de personnage.", ephemeral=True)
+            return
+        async with conn.transaction():
+            # Quitter Pirate = quitter l'équipage (incohérent sinon)
+            if row["equipage_id"] and faction.value != "Pirate":
+                await conn.execute(
+                    "UPDATE players SET equipage_id = NULL, grade_equipage = NULL WHERE guild_id=$1 AND user_id=$2",
+                    interaction.guild_id, membre.id
+                )
+            # Quitter Civil = perdre le métier (réservé aux Civils)
+            if row["
