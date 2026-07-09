@@ -5,9 +5,10 @@ RANG_EMOJIS = {"Capitaine": "🏴‍☠️", "Second": "⚔️", "Officier": "�
 MAX_MEMBRES = 10
 COUT_CREATION = 200
 
-def rang_valeur(rang: str) -> int:
+def rang_valeur(rang: str, ranks_list=None) -> int:
+    liste = ranks_list or RANGS_ORDRE
     try:
-        return RANGS_ORDRE.index(rang)
+        return liste.index(rang)
     except ValueError:
         return 0
 
