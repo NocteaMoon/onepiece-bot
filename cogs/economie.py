@@ -5,6 +5,7 @@ import datetime
 from database.db import get_pool
 from utils.players import get_player
 from utils.channel_check import require_salon
+from utils.quetes import increment_quest_progress
 
 economie_group = app_commands.Group(name="economie", description="Commandes d'économie")
 
@@ -64,6 +65,8 @@ async def travailler(interaction: discord.Interaction):
             "UPDATE players SET berrys = berrys + $3 WHERE guild_id = $1 AND user_id = $2",
             interaction.guild_id, interaction.user.id, gain
         )
+
+    await increment_quest_progress(interaction.guild_id, interaction.user.id, "travailler")
 
     embed = discord.Embed(
         title="💼 Travail terminé !",
