@@ -33,6 +33,7 @@ SALON_CHOICES = [
     app_commands.Choice(name="Regates", value="salon_regates"),
     app_commands.Choice(name="Chasse au tresor", value="salon_tresor"),
     app_commands.Choice(name="Creation de personnage", value="salon_creation"),
+    app_commands.Choice(name="Guilde des metiers", value="salon_guilde"),
 ]
 
 @config_group.command(name="salon", description="Definir un salon pour une fonctionnalite")
@@ -154,13 +155,11 @@ async def joueur_faction(interaction: discord.Interaction, membre: discord.Membe
             await interaction.response.send_message(f"{membre.display_name} n a pas encore de personnage.", ephemeral=True)
             return
         async with conn.transaction():
-            # Leaving Pirate removes crew membership
             if row["equipage_id"] and faction.value != "Pirate":
                 await conn.execute(
                     "UPDATE players SET equipage_id = NULL, grade_equipage = NULL WHERE guild_id=$1 AND user_id=$2",
                     interaction.guild_id, membre.id
                 )
-            # Leaving Civil removes profession progress
             if row["metier"] and faction.value != "Civil":
                 await conn.execute(
                     "UPDATE players SET metier = NULL, metier_xp = 0, metier_rang = 0 WHERE guild_id=$1 AND user_id=$2",
@@ -168,6 +167,38 @@ async def joueur_faction(interaction: discord.Interaction, membre: discord.Membe
                 )
             await conn.execute("UPDATE players SET faction = $3 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, membre.id, faction.value)
     await interaction.response.send_message(f"Faction de {membre.mention} definie sur {faction.value}.", ephemeral=True)
+
+
+@joueur_admin_group.command(name="reset", description="Reinitialiser completement la fiche d un joueur (outil admin/test)")
+@app_commands.describe(membre="Le joueur a reinitialiser")
+async def joueur_reset(interaction: discord.Interaction, membre: discord.Member):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM players WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, membre.id)
+        if row is None:
+            await interaction.response.send_message(f"{membre.display_name} n a pas de personnage a reinitialiser.", ephemeral=True)
+            return
+
+        async with conn.transaction():
+            led_crews = await conn.fetch(
+                "SELECT id, nom FROM crews WHERE guild_id=$1 AND capitaine_id=$2",
+                interaction.guild_id, membre.id
+            )
+            for crew in led_crews:
+                await conn.execute(
+                    "UPDATE players SET equipage_id = NULL, grade_equipage = NULL WHERE guild_id=$1 AND equipage_id=$2",
+                    interaction.guild_id, crew["id"]
+                )
+                await conn.execute("DELETE FROM crews WHERE id = $1", crew["id"])
+
+            await conn.execute("DELETE FROM inventory WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, membre.id)
+            await conn.execute("DELETE FROM players WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, membre.id)
+
+    dissous = f" ({len(led_crews)} organisation(s) dissoute(s) au passage)" if led_crews else ""
+    await interaction.response.send_message(
+        f"Fiche de {membre.mention} entierement reinitialisee{dissous}. Il/elle peut refaire /commencer.",
+        ephemeral=True
+    )
 
 
 def setup_admin_commands(bot):
