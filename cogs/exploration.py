@@ -6,6 +6,7 @@ from utils.players import get_player, add_xp
 from utils.shop import get_random_loot
 from utils.channel_check import require_salon
 from utils.announcements import announce_level_up
+from utils.quetes import increment_quest_progress
 
 COUT_ENDURANCE = 15
 
@@ -112,6 +113,7 @@ async def explorer(interaction: discord.Interaction):
                     )
 
     niveaux_gagnes, nouveau_niveau = await add_xp(interaction.guild_id, interaction.user.id, xp_gain, xpc_gain)
+    await increment_quest_progress(interaction.guild_id, interaction.user.id, "explorer")
 
     embed = discord.Embed(title="🗺️ Exploration", description=message, color=0x1B3A5C)
     embed.set_footer(text=f"🌊 One Piece Bot • +{xp_gain} XP • -{endurance_cost} endurance")
