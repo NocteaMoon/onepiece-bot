@@ -7,6 +7,7 @@ from utils.players import get_player, add_xp
 from utils.combat_stats import get_effective_stats
 from utils.channel_check import require_salon
 from utils.announcements import announce_level_up
+from utils.quetes import increment_quest_progress
 from data.ennemis import ENNEMIS
 
 COUT_ENDURANCE = 20
@@ -90,6 +91,7 @@ class CombatView(discord.ui.View):
                 self.guild_id, self.user_id, berrys_gain, self.enemy["prime_gain"], pv_final
             )
         niveaux_gagnes, nouveau_niveau = await add_xp(self.guild_id, self.user_id, self.enemy["xp"], self.enemy["xpc"])
+        await increment_quest_progress(self.guild_id, self.user_id, "combattre_victoire")
 
         self.log.append(f"🏆 Victoire ! Tu gagnes **{berrys_gain}฿**, **{self.enemy['prime_gain']}฿ de prime**, et de l'XP !")
         embed = self.build_embed()
