@@ -36,6 +36,9 @@ from cogs.equipage import setup_equipage_commands
 from cogs.marine import setup_marine_commands
 from cogs.revolution import setup_revolution_commands
 from cogs.guilde import setup_guilde_commands
+from cogs.forgeron import setup_forgeron_commands
+from cogs.medecin import setup_medecin_commands
+from cogs.navigateur import setup_navigateur_commands
 
 app = Flask('')
 
@@ -84,6 +87,9 @@ setup_equipage_commands(bot)
 setup_marine_commands(bot)
 setup_revolution_commands(bot)
 setup_guilde_commands(bot)
+setup_forgeron_commands(bot)
+setup_medecin_commands(bot)
+setup_navigateur_commands(bot)
 
 @bot.event
 async def on_ready():
