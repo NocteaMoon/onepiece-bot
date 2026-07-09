@@ -8,7 +8,7 @@ def embed_accueil():
         description=(
             "Bienvenue à bord ! Ce carnet te guide à travers toutes les possibilités du monde.\n\n"
             "Utilise le menu déroulant ci-dessous pour explorer chaque section : ton personnage, "
-            "l'économie, l'aventure, les quêtes, le combat, les métiers, les organisations, les mini-jeux...\n\n"
+            "l'économie, l'aventure, les quêtes, les récompenses, le combat, les métiers, les organisations, les mini-jeux...\n\n"
             "🌊 Bon vent, moussaillon !"
         ),
         color=0x1B3A5C
@@ -76,6 +76,24 @@ def embed_quetes():
             "💡 Astuce : les quêtes hebdomadaires rapportent beaucoup plus que les journalières, garde un œil dessus."
         ),
         color=0xD4A017
+    )
+    embed.set_footer(text="🌊 One Piece Bot • Guide du joueur")
+    return embed
+
+def embed_recompenses():
+    embed = discord.Embed(
+        title="🎁 Récompenses régulières",
+        description=(
+            "Différentes des quêtes : ici, pas d'objectif à remplir, juste revenir régulièrement !\n\n"
+            "**`/recompenses quotidienne`** — Toutes les 24h. Plus tu reviens de jours **consécutifs**, "
+            "plus le bonus grandit (jusqu'à +35฿ au 7ème jour de série). Rate un jour et la série repart à zéro !\n\n"
+            "**`/recompenses hebdomadaire`** — Tous les 7 jours, un bon paquet de Berrys fixe.\n\n"
+            "**`/recompenses mensuelle`** — Tous les 30 jours, la plus généreuse (Berrys, XP, et une chance "
+            "d'objet rare en bonus).\n\n"
+            "💡 Ces trois récompenses sont indépendantes les unes des autres : tu peux les réclamer toutes "
+            "le même jour si les cooldowns sont passés !"
+        ),
+        color=0xF4C430
     )
     embed.set_footer(text="🌊 One Piece Bot • Guide du joueur")
     return embed
@@ -170,6 +188,7 @@ SECTIONS = {
     "economie": embed_economie,
     "aventure": embed_aventure,
     "quetes": embed_quetes,
+    "recompenses": embed_recompenses,
     "combat": embed_combat,
     "metiers": embed_metiers,
     "organisations": embed_organisations,
@@ -186,6 +205,7 @@ class GuideSelect(discord.ui.Select):
             discord.SelectOption(label="Économie", value="economie", emoji="💰"),
             discord.SelectOption(label="Aventure", value="aventure", emoji="🗺️"),
             discord.SelectOption(label="Quêtes", value="quetes", emoji="📜"),
+            discord.SelectOption(label="Récompenses", value="recompenses", emoji="🎁"),
             discord.SelectOption(label="Combat", value="combat", emoji="⚔️"),
             discord.SelectOption(label="Métiers", value="metiers", emoji="🔧"),
             discord.SelectOption(label="Organisations", value="organisations", emoji="🏴‍☠️"),
