@@ -29,7 +29,7 @@ async def equipage_creer(interaction: discord.Interaction, nom: str):
         await interaction.followup.send("Tu n'as pas encore de personnage ! Lance `/commencer` pour débuter l'aventure 🏴‍☠️")
         return
     if player["faction"] != "Pirate":
-        await interaction.followup.send("⛔ Seuls les Pirates peuvent fonder un équipage pour l'instant.")
+        await interaction.followup.send("⛔ Seuls les Pirates peuvent fonder un équipage.")
         return
     if player["equipage_id"]:
         await interaction.followup.send("⛔ Tu fais déjà partie d'un équipage. Quitte-le d'abord avec `/equipage quitter`.")
@@ -42,14 +42,14 @@ async def equipage_creer(interaction: discord.Interaction, nom: str):
         return
     existant = await get_crew_by_nom(interaction.guild_id, nom)
     if existant:
-        await interaction.followup.send("⛔ Ce nom d'équipage est déjà pris sur ce serveur.")
+        await interaction.followup.send("⛔ Ce nom est déjà pris sur ce serveur.")
         return
 
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
             row = await conn.fetchrow(
-                "INSERT INTO crews (guild_id, nom, capitaine_id) VALUES ($1, $2, $3) RETURNING id",
+                "INSERT INTO crews (guild_id, nom, capitaine_id, type) VALUES ($1, $2, $3, 'Pirate') RETURNING id",
                 interaction.guild_id, nom, interaction.user.id
             )
             await conn.execute(
@@ -75,7 +75,7 @@ async def equipage_inviter(interaction: discord.Interaction, membre: discord.Mem
     if crew is None:
         await interaction.followup.send("⛔ Tu ne fais partie d'aucun équipage.")
         return
-    if rang_valeur(player["grade_equipage"]) < rang_valeur("Officier"):
+    if rang_valeur(player["grade_equipage"], RANGS_ORDRE) < rang_valeur("Officier", RANGS_ORDRE):
         await interaction.followup.send("⛔ Il faut être au moins Officier pour inviter quelqu'un.")
         return
     if membre.id == interaction.user.id or membre.bot:
@@ -92,7 +92,7 @@ async def equipage_inviter(interaction: discord.Interaction, membre: discord.Mem
         await interaction.followup.send(f"{membre.display_name} n'a pas encore de personnage.")
         return
     if cible_data["faction"] != "Pirate":
-        await interaction.followup.send(f"⛔ {membre.display_name} n'est pas Pirate, il/elle ne peut pas rejoindre d'équipage.")
+        await interaction.followup.send(f"⛔ {membre.display_name} n'est pas Pirate.")
         return
     if cible_data["equipage_id"]:
         await interaction.followup.send(f"⛔ {membre.display_name} fait déjà partie d'un équipage.")
@@ -188,7 +188,7 @@ async def equipage_expulser(interaction: discord.Interaction, membre: discord.Me
     if crew is None:
         await interaction.followup.send("⛔ Tu ne fais partie d'aucun équipage.")
         return
-    if rang_valeur(player["grade_equipage"]) < rang_valeur("Officier"):
+    if rang_valeur(player["grade_equipage"], RANGS_ORDRE) < rang_valeur("Officier", RANGS_ORDRE):
         await interaction.followup.send("⛔ Il faut être au moins Officier pour expulser quelqu'un.")
         return
     if membre.id == interaction.user.id:
@@ -199,7 +199,7 @@ async def equipage_expulser(interaction: discord.Interaction, membre: discord.Me
     if not cible_data or cible_data["equipage_id"] != crew["id"]:
         await interaction.followup.send(f"{membre.display_name} ne fait pas partie de ton équipage.")
         return
-    if rang_valeur(cible_data["grade_equipage"]) >= rang_valeur(player["grade_equipage"]):
+    if rang_valeur(cible_data["grade_equipage"], RANGS_ORDRE) >= rang_valeur(player["grade_equipage"], RANGS_ORDRE):
         await interaction.followup.send("⛔ Tu ne peux pas expulser un membre de rang égal ou supérieur au tien.")
         return
 
@@ -221,7 +221,7 @@ async def equipage_quitter(interaction: discord.Interaction):
         await interaction.followup.send("⛔ Tu ne fais partie d'aucun équipage.")
         return
     if player["grade_equipage"] == "Capitaine":
-        await interaction.followup.send("⛔ Le Capitaine ne peut pas quitter directement. Transfère le capitanat avec `/equipage transferer_capitainat`, ou dissous l'équipage avec `/equipage dissoudre`.")
+        await interaction.followup.send("⛔ Le Capitaine ne peut pas quitter directement. Transfère le capitanat ou dissous l'équipage.")
         return
 
     pool = get_pool()
@@ -286,14 +286,8 @@ async def equipage_transferer(interaction: discord.Interaction, nouveau_capitain
     async with pool.acquire() as conn:
         async with conn.transaction():
             await conn.execute("UPDATE crews SET capitaine_id = $2 WHERE id = $1", crew["id"], nouveau_capitaine.id)
-            await conn.execute(
-                "UPDATE players SET grade_equipage = 'Second' WHERE guild_id=$1 AND user_id=$2",
-                interaction.guild_id, interaction.user.id
-            )
-            await conn.execute(
-                "UPDATE players SET grade_equipage = 'Capitaine' WHERE guild_id=$1 AND user_id=$2",
-                interaction.guild_id, nouveau_capitaine.id
-            )
+            await conn.execute("UPDATE players SET grade_equipage = 'Second' WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, interaction.user.id)
+            await conn.execute("UPDATE players SET grade_equipage = 'Capitaine' WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, nouveau_capitaine.id)
     await interaction.followup.send(f"🏴‍☠️ {nouveau_capitaine.mention} est le nouveau Capitaine de **{crew['nom']}** !")
 
 
@@ -308,7 +302,7 @@ async def equipage_dissoudre(interaction: discord.Interaction):
 
     view = DissolutionConfirmView(interaction.guild_id, crew["id"], crew["nom"], interaction.user.id)
     await interaction.followup.send(
-        embed=discord.Embed(title="⚠️ Confirmation requise", description=f"Es-tu sûr de vouloir dissoudre **{crew['nom']}** ? Cette action est irréversible.", color=0xC0392B),
+        embed=discord.Embed(title="⚠️ Confirmation requise", description=f"Es-tu sûr de vouloir dissoudre **{crew['nom']}** ?", color=0xC0392B),
         view=view
     )
 
@@ -332,10 +326,7 @@ class DissolutionConfirmView(discord.ui.View):
         pool = get_pool()
         async with pool.acquire() as conn:
             async with conn.transaction():
-                await conn.execute(
-                    "UPDATE players SET equipage_id = NULL, grade_equipage = NULL WHERE guild_id=$1 AND equipage_id=$2",
-                    self.guild_id, self.crew_id
-                )
+                await conn.execute("UPDATE players SET equipage_id = NULL, grade_equipage = NULL WHERE guild_id=$1 AND equipage_id=$2", self.guild_id, self.crew_id)
                 await conn.execute("DELETE FROM crews WHERE id = $1", self.crew_id)
         for c in self.children:
             c.disabled = True
@@ -371,7 +362,7 @@ async def equipage_renommer(interaction: discord.Interaction, nouveau_nom: str):
     await interaction.followup.send(f"✅ L'équipage s'appelle maintenant **{nouveau_nom}** !")
 
 
-@equipage_group.command(name="drapeau", description="Définir le drapeau (image) de ton équipage (réservé au Capitaine)")
+@equipage_group.command(name="drapeau", description="Définir le drapeau de ton équipage (réservé au Capitaine)")
 @app_commands.describe(image="L'image du drapeau")
 @require_salon("salon_equipages")
 async def equipage_drapeau(interaction: discord.Interaction, image: discord.Attachment):
@@ -424,7 +415,7 @@ async def coffre_retrait(interaction: discord.Interaction, montant: int):
     if crew is None:
         await interaction.followup.send("⛔ Tu ne fais partie d'aucun équipage.")
         return
-    if rang_valeur(player["grade_equipage"]) < rang_valeur("Second"):
+    if rang_valeur(player["grade_equipage"], RANGS_ORDRE) < rang_valeur("Second", RANGS_ORDRE):
         await interaction.followup.send("⛔ Il faut être Second ou Capitaine pour retirer du coffre.")
         return
     if montant <= 0:
@@ -493,7 +484,7 @@ async def equipage_liste(interaction: discord.Interaction):
     await interaction.response.defer()
     pool = get_pool()
     async with pool.acquire() as conn:
-        crews = await conn.fetch("SELECT * FROM crews WHERE guild_id = $1", interaction.guild_id)
+        crews = await conn.fetch("SELECT * FROM crews WHERE guild_id = $1 AND type = 'Pirate'", interaction.guild_id)
 
     if not crews:
         await interaction.followup.send("Aucun équipage n'a encore été fondé sur ce serveur.")
