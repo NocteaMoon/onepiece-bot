@@ -8,7 +8,7 @@ def embed_accueil():
         description=(
             "Bienvenue à bord ! Ce carnet te guide à travers toutes les possibilités du monde.\n\n"
             "Utilise le menu déroulant ci-dessous pour explorer chaque section : ton personnage, "
-            "l'économie, l'aventure, le combat, les métiers, les organisations, les mini-jeux...\n\n"
+            "l'économie, l'aventure, les quêtes, le combat, les métiers, les organisations, les mini-jeux...\n\n"
             "🌊 Bon vent, moussaillon !"
         ),
         color=0x1B3A5C
@@ -59,6 +59,23 @@ def embed_aventure():
             "Toutes ces actions coûtent de l'**endurance**, qui se régénère automatiquement avec le temps."
         ),
         color=0x1B3A5C
+    )
+    embed.set_footer(text="🌊 One Piece Bot • Guide du joueur")
+    return embed
+
+def embed_quetes():
+    embed = discord.Embed(
+        title="📜 Quêtes",
+        description=(
+            "**`/quetes`** — Affiche tes quêtes journalières (renouvelées chaque jour) et hebdomadaires "
+            "(renouvelées chaque semaine), avec ta progression en direct.\n\n"
+            "Pas besoin de les activer : ta progression avance **automatiquement** en jouant normalement "
+            "(explorer, gagner des combats, pêcher/chasser/récolter, travailler, cuisiner...).\n\n"
+            "Une fois une quête à 100%, clique sur **🎁 Réclamer les récompenses** dans `/quetes` pour "
+            "encaisser tes Berrys et ton XP — les gains ne sont jamais automatiques, il faut venir les chercher !\n\n"
+            "💡 Astuce : les quêtes hebdomadaires rapportent beaucoup plus que les journalières, garde un œil dessus."
+        ),
+        color=0xD4A017
     )
     embed.set_footer(text="🌊 One Piece Bot • Guide du joueur")
     return embed
@@ -152,6 +169,7 @@ SECTIONS = {
     "profil": embed_profil,
     "economie": embed_economie,
     "aventure": embed_aventure,
+    "quetes": embed_quetes,
     "combat": embed_combat,
     "metiers": embed_metiers,
     "organisations": embed_organisations,
@@ -167,6 +185,7 @@ class GuideSelect(discord.ui.Select):
             discord.SelectOption(label="Ton personnage", value="profil", emoji="📈"),
             discord.SelectOption(label="Économie", value="economie", emoji="💰"),
             discord.SelectOption(label="Aventure", value="aventure", emoji="🗺️"),
+            discord.SelectOption(label="Quêtes", value="quetes", emoji="📜"),
             discord.SelectOption(label="Combat", value="combat", emoji="⚔️"),
             discord.SelectOption(label="Métiers", value="metiers", emoji="🔧"),
             discord.SelectOption(label="Organisations", value="organisations", emoji="🏴‍☠️"),
