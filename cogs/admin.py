@@ -34,6 +34,7 @@ SALON_CHOICES = [
     app_commands.Choice(name="Chasse au tresor", value="salon_tresor"),
     app_commands.Choice(name="Creation de personnage", value="salon_creation"),
     app_commands.Choice(name="Guilde des metiers", value="salon_guilde"),
+    app_commands.Choice(name="Carnet de bord (guide)", value="salon_carnet"),
 ]
 
 @config_group.command(name="salon", description="Definir un salon pour une fonctionnalite")
