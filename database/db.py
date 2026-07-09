@@ -222,6 +222,21 @@ async def init_db():
         """)
         await conn.execute("ALTER TABLE crews ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'Pirate'")
 
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS quest_progress (
+                id SERIAL PRIMARY KEY,
+                guild_id BIGINT,
+                user_id BIGINT,
+                slot INT,
+                periode TEXT,
+                objectif_code TEXT,
+                cible INT,
+                progres INT DEFAULT 0,
+                reclame BOOLEAN DEFAULT FALSE,
+                expire_le TIMESTAMP
+            )
+        """)
+
     print("Base de données connectée et tables vérifiées.")
 
 def get_pool():
