@@ -8,47 +8,59 @@ config_group = app_commands.Group(
     default_permissions=discord.Permissions(administrator=True)
 )
 
-SALON_CHOICES = [
-    app_commands.Choice(name="Annonces", value="salon_annonces"),
-    app_commands.Choice(name="Reglement", value="salon_reglement"),
-    app_commands.Choice(name="Bienvenue", value="salon_bienvenue"),
-    app_commands.Choice(name="Logs", value="salon_logs"),
-    app_commands.Choice(name="Moderation", value="salon_moderation"),
-    app_commands.Choice(name="Rapports", value="salon_rapports"),
-    app_commands.Choice(name="General", value="salon_general"),
-    app_commands.Choice(name="Economie", value="salon_economie"),
-    app_commands.Choice(name="Boutique", value="salon_boutique"),
-    app_commands.Choice(name="Exploration", value="salon_exploration"),
-    app_commands.Choice(name="Combat", value="salon_combat"),
-    app_commands.Choice(name="Duel / PvP", value="salon_duel"),
-    app_commands.Choice(name="Peche-Chasse-Recolte", value="salon_peche"),
-    app_commands.Choice(name="Casino", value="salon_casino"),
-    app_commands.Choice(name="Equipages", value="salon_equipages"),
-    app_commands.Choice(name="Marine", value="salon_marine"),
-    app_commands.Choice(name="Revolutionnaires", value="salon_revolutionnaires"),
-    app_commands.Choice(name="Classements", value="salon_classements"),
-    app_commands.Choice(name="Quetes / Evenements", value="salon_quetes"),
-    app_commands.Choice(name="Succes", value="salon_succes"),
-    app_commands.Choice(name="Taverne (defis annexes)", value="salon_taverne"),
-    app_commands.Choice(name="Regates", value="salon_regates"),
-    app_commands.Choice(name="Chasse au tresor", value="salon_tresor"),
-    app_commands.Choice(name="Creation de personnage", value="salon_creation"),
-    app_commands.Choice(name="Guilde des metiers", value="salon_guilde"),
-    app_commands.Choice(name="Carnet de bord (guide)", value="salon_carnet"),
+SALON_DEFINITIONS = [
+    ("Annonces", "salon_annonces"),
+    ("Reglement", "salon_reglement"),
+    ("Bienvenue", "salon_bienvenue"),
+    ("Logs", "salon_logs"),
+    ("Moderation", "salon_moderation"),
+    ("Rapports", "salon_rapports"),
+    ("General", "salon_general"),
+    ("Economie", "salon_economie"),
+    ("Boutique", "salon_boutique"),
+    ("Exploration", "salon_exploration"),
+    ("Combat", "salon_combat"),
+    ("Duel / PvP", "salon_duel"),
+    ("Peche-Chasse-Recolte", "salon_peche"),
+    ("Casino", "salon_casino"),
+    ("Equipages", "salon_equipages"),
+    ("Marine", "salon_marine"),
+    ("Revolutionnaires", "salon_revolutionnaires"),
+    ("Classements", "salon_classements"),
+    ("Quetes / Evenements", "salon_quetes"),
+    ("Succes", "salon_succes"),
+    ("Taverne (defis annexes)", "salon_taverne"),
+    ("Regates", "salon_regates"),
+    ("Chasse au tresor", "salon_tresor"),
+    ("Creation de personnage", "salon_creation"),
+    ("Guilde des metiers", "salon_guilde"),
+    ("Carnet de bord (guide)", "salon_carnet"),
 ]
 
+async def salon_type_autocomplete(interaction: discord.Interaction, current: str):
+    current_lower = current.lower()
+    filtered = [(label, value) for label, value in SALON_DEFINITIONS if current_lower in label.lower()]
+    return [app_commands.Choice(name=label, value=value) for label, value in filtered[:25]]
+
 @config_group.command(name="salon", description="Definir un salon pour une fonctionnalite")
-@app_commands.describe(type="Le type de salon a configurer", salon="Le salon a utiliser")
-@app_commands.choices(type=SALON_CHOICES)
-async def config_salon(interaction: discord.Interaction, type: app_commands.Choice[str], salon: discord.TextChannel):
+@app_commands.describe(type="Tape pour rechercher le type de salon", salon="Le salon a utiliser")
+@app_commands.autocomplete(type=salon_type_autocomplete)
+async def config_salon(interaction: discord.Interaction, type: str, salon: discord.TextChannel):
+    valid_values = {value for _, value in SALON_DEFINITIONS}
+    if type not in valid_values:
+        await interaction.response.send_message("Type de salon invalide, choisis-en un dans la liste proposee par l autocompletion.", ephemeral=True)
+        return
+
     pool = get_pool()
     async with pool.acquire() as conn:
         await conn.execute(f"""
-            INSERT INTO guild_config (guild_id, {type.value})
+            INSERT INTO guild_config (guild_id, {type})
             VALUES ($1, $2)
-            ON CONFLICT (guild_id) DO UPDATE SET {type.value} = $2
+            ON CONFLICT (guild_id) DO UPDATE SET {type} = $2
         """, interaction.guild_id, salon.id)
-    await interaction.response.send_message(f"Salon {type.name} defini sur {salon.mention}", ephemeral=True)
+
+    label = next((l for l, v in SALON_DEFINITIONS if v == type), type)
+    await interaction.response.send_message(f"Salon {label} defini sur {salon.mention}", ephemeral=True)
 
 @config_group.command(name="lang", description="Definir la langue du bot pour ce serveur")
 @app_commands.choices(langue=[
@@ -76,9 +88,9 @@ async def config_voir(interaction: discord.Interaction):
 
     embed = discord.Embed(title="Configuration du serveur", color=0x2C3E50)
     embed.add_field(name="Langue", value=row["lang"], inline=False)
-    for choice in SALON_CHOICES:
-        val = row[choice.value]
-        embed.add_field(name=choice.name, value=f"<#{val}>" if val else "Non defini", inline=True)
+    for label, value in SALON_DEFINITIONS:
+        val = row[value]
+        embed.add_field(name=label, value=f"<#{val}>" if val else "Non defini", inline=True)
     embed.set_footer(text="One Piece Bot - Configuration")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
