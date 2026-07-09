@@ -117,6 +117,7 @@ class InvitationView(discord.ui.View):
         self.crew_nom = crew_nom
         self.target = target
         self.repondu = False
+        self.message = None
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.target.id:
@@ -392,6 +393,7 @@ coffre_group = app_commands.Group(name="coffre", description="Gérer le coffre c
 
 @coffre_group.command(name="depot", description="Déposer des Berrys dans le coffre commun")
 @app_commands.describe(montant="Le montant à déposer")
+@require_salon("salon_equipages")
 async def coffre_depot(interaction: discord.Interaction, montant: int):
     await interaction.response.defer()
     player, crew = await get_joueur_et_equipage(interaction.guild_id, interaction.user.id)
@@ -415,6 +417,7 @@ async def coffre_depot(interaction: discord.Interaction, montant: int):
 
 @coffre_group.command(name="retrait", description="Retirer des Berrys du coffre commun (Second et Capitaine uniquement)")
 @app_commands.describe(montant="Le montant à retirer")
+@require_salon("salon_equipages")
 async def coffre_retrait(interaction: discord.Interaction, montant: int):
     await interaction.response.defer()
     player, crew = await get_joueur_et_equipage(interaction.guild_id, interaction.user.id)
@@ -440,6 +443,7 @@ async def coffre_retrait(interaction: discord.Interaction, montant: int):
 
 
 @coffre_group.command(name="solde", description="Voir le solde du coffre commun")
+@require_salon("salon_equipages")
 async def coffre_solde(interaction: discord.Interaction):
     await interaction.response.defer()
     player, crew = await get_joueur_et_equipage(interaction.guild_id, interaction.user.id)
