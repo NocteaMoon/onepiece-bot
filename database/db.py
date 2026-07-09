@@ -218,6 +218,7 @@ async def init_db():
                 cree_le TIMESTAMP DEFAULT NOW()
             )
         """)
+        await conn.execute("ALTER TABLE crews ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'Pirate'")
 
     print("Base de données connectée et tables vérifiées.")
 
