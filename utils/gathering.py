@@ -4,6 +4,7 @@ from database.db import get_pool
 from utils.players import get_player, add_xp
 from utils.shop import get_item_by_name
 from utils.announcements import announce_level_up
+from utils.quetes import increment_quest_progress
 
 COUT_ENDURANCE_COLLECTE = 10
 
@@ -52,6 +53,7 @@ async def do_gather(interaction: discord.Interaction, titre: str, verbe_action: 
                         )
 
     niveaux_gagnes, nouveau_niveau = await add_xp(interaction.guild_id, interaction.user.id, xp_gain, xpc_gain)
+    await increment_quest_progress(interaction.guild_id, interaction.user.id, "collecte")
 
     if resultat == "RIEN":
         message = f"Tu {verbe_action} {lieu} mais ne trouves rien cette fois-ci."
