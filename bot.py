@@ -32,6 +32,7 @@ from cogs.prime_tete import setup_prime_tete_commands
 from cogs.chasse_tresor import setup_chasse_tresor_commands
 from cogs.raid_boss import setup_raid_boss_commands
 from cogs.tournoi import setup_tournoi_commands
+from cogs.equipage import setup_equipage_commands
 
 app = Flask('')
 
@@ -76,6 +77,7 @@ setup_prime_tete_commands(bot)
 setup_chasse_tresor_commands(bot)
 setup_raid_boss_commands(bot)
 setup_tournoi_commands(bot)
+setup_equipage_commands(bot)
 
 @bot.event
 async def on_ready():
