@@ -240,6 +240,7 @@ async def init_db():
                 expire_le TIMESTAMP
             )
         """)
+        await conn.execute("ALTER TABLE quest_progress ADD COLUMN IF NOT EXISTS ref_id TEXT")
 
     print("Base de données connectée et tables vérifiées.")
 
