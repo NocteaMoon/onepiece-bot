@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from database.db import get_pool
 from utils.players import get_player
+from utils.equipages import get_crew_by_id, count_membres
 
 @app_commands.command(name="prime_tete", description="Afficher l'avis de recherche (prime) d'un pirate")
 @app_commands.describe(membre="Le membre dont tu veux voir l'avis de recherche (toi par défaut)")
@@ -26,7 +27,10 @@ async def prime_tete(interaction: discord.Interaction, membre: discord.Member = 
 
     equipage_texte = "Aventurier(ère) solitaire, sans équipage"
     if player["equipage_id"]:
-        equipage_texte = f"Membre d'un équipage (ID {player['equipage_id']})"
+        crew = await get_crew_by_id(interaction.guild_id, player["equipage_id"])
+        if crew:
+            nb = await count_membres(interaction.guild_id, crew["id"])
+            equipage_texte = f"**{crew['nom']}** ({nb} membre{'s' if nb > 1 else ''}) — {player['grade_equipage']}"
 
     embed = discord.Embed(
         title="☠️ AVIS DE RECHERCHE ☠️",
