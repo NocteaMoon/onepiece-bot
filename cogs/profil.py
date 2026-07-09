@@ -23,7 +23,7 @@ ESPACE = "\u200b"
     app_commands.Choice(name="🏴‍☠️ Pirate — liberté, primes et trésors", value="Pirate"),
     app_commands.Choice(name="⚓ Marine — justice, grades et patrouilles", value="Marine"),
     app_commands.Choice(name="🔥 Révolutionnaire — l'ombre et la révolte", value="Révolutionnaire"),
-    app_commands.Choice(name="🏘️ Civil — neutre, tu choisiras plus tard", value="Civil"),
+    app_commands.Choice(name="🏘️ Civil — artisanat, métiers et commerce", value="Civil"),
 ])
 async def commencer(interaction: discord.Interaction, faction: app_commands.Choice[str]):
     await interaction.response.defer()
