@@ -167,6 +167,7 @@ async def init_db():
         await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS daily_streak INT DEFAULT 0")
         await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS last_weekly TIMESTAMP")
         await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS last_monthly TIMESTAMP")
+        await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS succes_tournoi_gagne BOOLEAN DEFAULT FALSE")
 
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS shop_items (
@@ -264,6 +265,16 @@ async def init_db():
                 guild_id BIGINT,
                 user_id BIGINT,
                 degats INT DEFAULT 0
+            )
+        """)
+
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS achievements_claimed (
+                guild_id BIGINT,
+                user_id BIGINT,
+                code TEXT,
+                claimed_at TIMESTAMP DEFAULT NOW(),
+                PRIMARY KEY (guild_id, user_id, code)
             )
         """)
 
