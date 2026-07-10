@@ -35,8 +35,9 @@ async def get_visible_items(guild_id: int, faction: str, categorie: str = None):
     query += " ORDER BY categorie, prix"
     async with pool.acquire() as conn:
         rows = await conn.fetch(query, *params)
-    # Les plats ne sont jamais achetables directement, seulement via /cuisiner
-    return [r for r in rows if r["categorie"] != "Plat"]
+    # Les objets obtenables uniquement par artisanat (plats, remèdes, objets forgés, cartes)
+    # ont tous un stock à 0 et ne sont jamais vendus en boutique.
+    return [r for r in rows if r["stock"] != 0]
 
 
 async def get_item_by_id(guild_id: int, item_id: int):
