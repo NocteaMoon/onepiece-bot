@@ -24,6 +24,8 @@ def embed_profil():
             "**`/commencer`** — Crée ton personnage et choisis ta faction : Pirate, Marine, "
             "Révolutionnaire ou Civil. Chacune a sa propre voie de jeu, alors réfléchis bien !\n\n"
             "**`/profil`** — Ta fiche complète : niveau, Berrys, prime, stats de combat, position, équipage...\n\n"
+            "**`/titre choisir`** — Équipe le titre de ton choix parmi ceux que tu as débloqués (au fil des "
+            "quêtes principales notamment). **`/titre voir`** liste tous tes titres gagnés.\n\n"
             "Tu gagnes de l'XP en faisant à peu près tout (explorer, pêcher, combattre, cuisiner...). "
             "En montant de niveau, tes stats augmentent et tu es entièrement soigné !"
         ),
@@ -53,7 +55,7 @@ def embed_aventure():
         title="🗺️ Aventure",
         description=(
             "**`/explorer`** — Fouille les environs de ton île actuelle : Berrys, objets, trésors cachés, ou parfois rien du tout.\n\n"
-            "**`/pecher` / `/chasser` / `/recolter`** — Récolte des ingrédients bruts (utiles pour la cuisine !), "
+            "**`/pecher` / `/chasser` / `/recolter`** — Récolte des ingrédients bruts (utiles pour les métiers !), "
             "accessible à toutes les factions.\n\n"
             "**`/debarquer`** — Change d'île au sein de ta mer actuelle, pour un coût minime en endurance "
             "(contrairement à `/voyager` qui change carrément de mer et coûte bien plus cher).\n\n"
@@ -76,7 +78,7 @@ def embed_quetes():
             "Progression automatique en jouant, bouton 🎁 pour réclamer une fois terminées.\n\n"
             "**`/quetes principale`** — Une histoire à suivre, chapitre par chapitre. Une seule à la fois, "
             "la suivante se débloque automatiquement une fois la précédente réclamée. Certains chapitres "
-            "débloquent même un titre exclusif !\n\n"
+            "débloquent même un titre exclusif (garde-le ou change-le avec `/titre choisir`) !\n\n"
             "**`/quetes secondaires`** — Des missions optionnelles au choix (2 maximum en même temps). "
             "Utilise `/quetes secondaire_rejoindre` pour en accepter une, `/quetes secondaire_abandonner` "
             "pour en libérer une si tu changes d'avis.\n\n"
@@ -143,11 +145,15 @@ def embed_metiers():
         title="🔧 Les Métiers — bien comprendre le système",
         description=(
             "Les métiers sont **réservés à la faction Civil**. Choisis-en un avec `/metier choisir`, "
-            "puis suis ta progression avec `/metier voir`.\n\n"
+            "puis suis ta progression avec `/metier voir`. Les 4 métiers ont maintenant chacun plusieurs "
+            "recettes débloquées par rang, comme la cuisine !\n\n"
             "**🍳 Cuisinier** → `/cuisiner` transforme tes ingrédients récoltés en plats qui soignent.\n"
-            "**🔨 Forgeron** → `/reparer` restaure la durabilité de ton équipement abîmé.\n"
-            "**💊 Médecin** → `/soigner` restaure les PV et lève le K.O. d'un joueur.\n"
-            "**🧭 Navigateur** → `/route_sure` garantit un voyage sans risque à quelqu'un.\n\n"
+            "**🔨 Forgeron** → `/forgeron reparer` restaure la durabilité de ton équipement, "
+            "`/forgeron forger` crée de nouvelles armes/armures à partir de minerais.\n"
+            "**💊 Médecin** → `/medecin soigner` restaure les PV et lève le K.O. d'un joueur, "
+            "`/medecin preparer` brasse des remèdes réutilisables à partir d'herbes.\n"
+            "**🧭 Navigateur** → `/navigateur route_sure` garantit un voyage sans risque, "
+            "`/navigateur dresser_carte` crée des cartes à partir de matériaux de navigation.\n\n"
             "⚠️ **Attention à ne pas confondre deux systèmes de rangs différents :**\n"
             "• Ton **rang de métier** (Apprenti → Confirmé → Maître) = ta compétence personnelle, "
             "progresse via `metier_xp` en pratiquant ton métier.\n"
