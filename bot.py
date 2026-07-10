@@ -44,6 +44,8 @@ from cogs.quetes import setup_quetes_commands
 from cogs.recompenses import setup_recompenses_commands
 from cogs.monde import setup_monde_commands
 from cogs.boss_mondial import setup_boss_mondial_commands, start_boss_loop
+from cogs.succes import setup_succes_commands
+from cogs.classement import setup_classement_commands
 
 app = Flask('')
 
@@ -100,6 +102,8 @@ setup_quetes_commands(bot)
 setup_recompenses_commands(bot)
 setup_monde_commands(bot)
 setup_boss_mondial_commands(bot)
+setup_succes_commands(bot)
+setup_classement_commands(bot)
 
 @bot.event
 async def on_ready():
