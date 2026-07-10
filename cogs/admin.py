@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 from database.db import get_pool
+from cogs.boss_mondial import force_spawn_boss
 
 config_group = app_commands.Group(
     name="config",
@@ -213,6 +214,15 @@ async def joueur_reset(interaction: discord.Interaction, membre: discord.Member)
         f"Fiche de {membre.mention} entierement reinitialisee{dissous}. Il/elle peut refaire /commencer.",
         ephemeral=True
     )
+
+
+boss_admin_group = app_commands.Group(name="boss", description="Outils admin pour le boss mondial", parent=config_group)
+
+@boss_admin_group.command(name="forcer", description="Forcer l apparition immediate d un boss mondial (outil admin/test)")
+async def boss_forcer(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    ok, message = await force_spawn_boss(interaction.guild)
+    await interaction.followup.send(message, ephemeral=True)
 
 
 def setup_admin_commands(bot):
