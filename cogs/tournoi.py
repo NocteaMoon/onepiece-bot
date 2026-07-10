@@ -230,7 +230,7 @@ async def tournoi(interaction: discord.Interaction):
     recompense = 250
     async with pool.acquire() as conn:
         await conn.execute(
-            "UPDATE players SET berrys = berrys + $3, prime = prime + $4, succes_tournoi_gagne = TRUE WHERE guild_id=$1 AND user_id=$2",
+            "UPDATE players SET berrys = berrys + $3, prime = prime + $4, nb_tournois_gagnes = nb_tournois_gagnes + 1 WHERE guild_id=$1 AND user_id=$2",
             interaction.guild_id, champion["id"], recompense, 60
         )
     niveaux, niveau = await add_xp(interaction.guild_id, champion["id"], 100, 40)
