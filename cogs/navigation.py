@@ -6,6 +6,7 @@ from utils.players import get_player, add_xp
 from utils.channel_check import require_salon
 from utils.announcements import announce_level_up
 from utils.quetes import increment_quest_progress
+from utils.succes import record_mer_visitee
 from data.mers import MERS
 
 MER_CHOICES = [app_commands.Choice(name=f"{nom} (niv. {niv}+)", value=nom) for nom, niv, _, _, _ in MERS]
@@ -125,6 +126,7 @@ async def voyager(interaction: discord.Interaction, destination: app_commands.Ch
                             WHERE guild_id=$1 AND user_id=$2 AND item_id=$4 AND equipe = TRUE
                         """, interaction.guild_id, interaction.user.id, durabilite_perte, item_id)
 
+    await record_mer_visitee(interaction.guild_id, interaction.user.id, nom_mer)
     await increment_quest_progress(interaction.guild_id, interaction.user.id, "voyager")
 
     xp_gain = 15 + xp_bonus
