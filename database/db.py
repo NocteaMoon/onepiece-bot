@@ -242,6 +242,31 @@ async def init_db():
         """)
         await conn.execute("ALTER TABLE quest_progress ADD COLUMN IF NOT EXISTS ref_id TEXT")
 
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS world_boss (
+                id SERIAL PRIMARY KEY,
+                guild_id BIGINT,
+                mer TEXT,
+                boss_nom TEXT,
+                pv INT,
+                pv_max INT,
+                phase TEXT DEFAULT 'inscription',
+                channel_id BIGINT,
+                message_id BIGINT,
+                cree_le TIMESTAMP DEFAULT NOW()
+            )
+        """)
+
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS world_boss_participants (
+                id SERIAL PRIMARY KEY,
+                world_boss_id INT,
+                guild_id BIGINT,
+                user_id BIGINT,
+                degats INT DEFAULT 0
+            )
+        """)
+
     print("Base de données connectée et tables vérifiées.")
 
 def get_pool():
