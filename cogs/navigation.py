@@ -97,7 +97,7 @@ async def voyager(interaction: discord.Interaction, destination: app_commands.Ch
     async with pool.acquire() as conn:
         async with conn.transaction():
             current = await conn.fetchrow(
-                "SELECT pv, endurance, equip_arme_principale, equip_corps FROM players WHERE guild_id=$1 AND user_id=$2",
+                "SELECT pv, endurance, equip_arme_principale, equip_corps, equip_navire FROM players WHERE guild_id=$1 AND user_id=$2",
                 interaction.guild_id, interaction.user.id
             )
             nouveau_pv = max(1, current["pv"] - pv_perte)
@@ -119,7 +119,8 @@ async def voyager(interaction: discord.Interaction, destination: app_commands.Ch
                 )
 
             if durabilite_perte > 0:
-                for item_id in [current["equip_arme_principale"], current["equip_corps"]]:
+                # Arme, armure et NAVIRE encaissent tous les dégâts d'une mauvaise traversée
+                for item_id in [current["equip_arme_principale"], current["equip_corps"], current["equip_navire"]]:
                     if item_id:
                         await conn.execute("""
                             UPDATE inventory SET durabilite = GREATEST(0, durabilite - $3)
