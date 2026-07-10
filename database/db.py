@@ -289,6 +289,15 @@ async def init_db():
             )
         """)
 
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS titres_debloques (
+                guild_id BIGINT,
+                user_id BIGINT,
+                titre TEXT,
+                PRIMARY KEY (guild_id, user_id, titre)
+            )
+        """)
+
     print("Base de données connectée et tables vérifiées.")
 
 def get_pool():
