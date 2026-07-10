@@ -51,9 +51,12 @@ def embed_aventure():
     embed = discord.Embed(
         title="🗺️ Aventure",
         description=(
-            "**`/explorer`** — Fouille les environs : Berrys, objets, trésors cachés, ou parfois rien du tout.\n\n"
+            "**`/explorer`** — Fouille les environs de ton île actuelle : Berrys, objets, trésors cachés, ou parfois rien du tout.\n\n"
             "**`/pecher` / `/chasser` / `/recolter`** — Récolte des ingrédients bruts (utiles pour la cuisine !), "
             "accessible à toutes les factions.\n\n"
+            "**`/debarquer`** — Change d'île au sein de ta mer actuelle, pour un coût minime en endurance "
+            "(contrairement à `/voyager` qui change carrément de mer et coûte bien plus cher).\n\n"
+            "**`/carte`** — Affiche ton île actuelle avec sa description, et les autres îles accessibles.\n\n"
             "**`/voyager`** — Change de mer. Chaque mer demande un niveau minimum, et le trajet réserve "
             "son lot de surprises (calme, tempête, découverte...).\n\n"
             "Toutes ces actions coûtent de l'**endurance**, qui se régénère automatiquement avec le temps."
