@@ -90,7 +90,7 @@ class WorldBossCombatView(discord.ui.View):
 
             async with pool.acquire() as conn:
                 await conn.execute(
-                    "UPDATE players SET berrys = berrys + $3, prime = prime + $4 WHERE guild_id=$1 AND user_id=$2",
+                    "UPDATE players SET berrys = berrys + $3, prime = prime + $4, nb_boss_vaincus = nb_boss_vaincus + 1 WHERE guild_id=$1 AND user_id=$2",
                     self.guild_id, r["user_id"], berrys, prime_flat
                 )
             niveaux, niveau = await add_xp(self.guild_id, r["user_id"], xp, xp // 2)
