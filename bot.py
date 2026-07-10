@@ -43,6 +43,7 @@ from cogs.guide import setup_guide_commands, GuideView
 from cogs.quetes import setup_quetes_commands
 from cogs.recompenses import setup_recompenses_commands
 from cogs.monde import setup_monde_commands
+from cogs.boss_mondial import setup_boss_mondial_commands, start_boss_loop
 
 app = Flask('')
 
@@ -98,6 +99,7 @@ setup_guide_commands(bot)
 setup_quetes_commands(bot)
 setup_recompenses_commands(bot)
 setup_monde_commands(bot)
+setup_boss_mondial_commands(bot)
 
 @bot.event
 async def on_ready():
@@ -110,6 +112,7 @@ async def on_ready():
     bot.add_view(TicketCloseView())
     bot.add_view(WelcomeVerifyView())
     bot.add_view(GuideView())
+    start_boss_loop(bot)
     try:
         synced = await bot.tree.sync()
         print(f"{len(synced)} commande(s) slash synchronisée(s).")
