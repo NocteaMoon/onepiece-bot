@@ -67,7 +67,21 @@ CATALOGUE = [
     ("Racine noueuse", "Une racine terreuse, base de nombreux plats simples.", "Ingrédient", "Tous", "Commun", 6, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
     ("Champignon des embruns", "Pousse uniquement près des côtes brumeuses.", "Ingrédient", "Tous", "Aiguisé", 18, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
     ("Fleur de corail", "Une fleur rarissime qui pousse sur le corail vivant.", "Ingrédient", "Tous", "Grade", 50, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
-    ("Poisson légendaire des abysses", "Une prise rarissime venue des profondeurs, prisée des plus grands chefs.", "Ingrédient", "Tous", "Grand Grade", 150, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+
+    # ===== MINERAIS (Forgeron) =====
+    ("Minerai de fer", "Un minerai commun mais essentiel à toute forge.", "Ingrédient", "Tous", "Commun", 12, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Minerai d'étain", "Plus rare, utilisé pour les alliages robustes.", "Ingrédient", "Tous", "Aiguisé", 28, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Pépite d'acier bleu", "Un minerai précieux aux reflets bleutés, très recherché.", "Ingrédient", "Tous", "Grade", 65, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+
+    # ===== HERBES (Médecin) =====
+    ("Herbe apaisante", "Une plante commune aux vertus calmantes.", "Ingrédient", "Tous", "Commun", 10, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Feuille de saule marin", "Pousse près des côtes, prisée des guérisseurs.", "Ingrédient", "Tous", "Aiguisé", 24, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Racine de vitalité", "Rare et puissante, elle redonne une énergie insoupçonnée.", "Ingrédient", "Tous", "Grade", 62, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+
+    # ===== MATÉRIAUX DE NAVIGATION (Navigateur) =====
+    ("Parchemin usé", "Un vieux parchemin récupéré d'une épave.", "Ingrédient", "Tous", "Commun", 9, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Encre de seiche", "Une encre naturelle idéale pour tracer des cartes.", "Ingrédient", "Tous", "Aiguisé", 21, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Corail luminescent", "Rare corail qui brille dans l'obscurité, précieux pour les navigateurs.", "Ingrédient", "Tous", "Grade", 58, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
 
     # ===== PLATS (uniquement via /cuisiner, jamais achetables — stock à 0) =====
     ("Soupe de fortune", "Une soupe chaude et réconfortante, préparée avec le peu qu'on a.", "Plat", "Tous", "Commun", 40, None, 0,0,0,0,0,0, 40,0, 1, 0, 1),
@@ -76,4 +90,19 @@ CATALOGUE = [
     ("Poisson tigre grillé", "Grillé à la perfection, ce poisson redonne toute son énergie.", "Plat", "Tous", "Aiguisé", 100, None, 0,0,0,0,0,0, 100,0, 1, 0, 1),
     ("Tarte de la moisson", "Une tarte délicate aux fleurs de corail confites.", "Plat", "Tous", "Aiguisé", 70, None, 0,0,0,0,0,0, 60,0, 1, 0, 1),
     ("Festin du capitaine", "Un festin digne d'un capitaine de légende.", "Plat", "Tous", "Grand Grade", 250, None, 0,0,0,0,0,0, 200,100, 1, 0, 1),
+
+    # ===== OBJETS FORGÉS (uniquement via /forgeron forger, jamais achetables) =====
+    ("Dague artisanale", "Forgée à la main à partir de minerai de fer brut.", "Arme", "Tous", "Commun", 0, "arme_secondaire", 6,0,0,0,0,0, 0,0, 100, 0, 1),
+    ("Sabre forgé maison", "Un sabre solide né de la forge d'un Forgeron talentueux.", "Arme", "Tous", "Aiguisé", 0, "arme_principale", 14,0,0,0,0,0, 0,0, 140, 0, 1),
+    ("Armure d'acier bleu", "Une armure rare forgée dans l'acier bleu précieux.", "Corps", "Tous", "Grade", 0, "corps", 0,20,0,0,15,0, 0,0, 180, 0, 1),
+
+    # ===== REMÈDES (uniquement via /medecin preparer, jamais achetables) =====
+    ("Tisane apaisante", "Une tisane simple préparée à partir d'herbe apaisante.", "Plat", "Tous", "Commun", 0, None, 0,0,0,0,0,0, 40,0, 1, 0, 1),
+    ("Baume de saule", "Un baume revigorant à base de feuille de saule marin.", "Plat", "Tous", "Aiguisé", 0, None, 0,0,0,0,0,0, 0,60, 1, 0, 1),
+    ("Élixir de vitalité", "Un puissant élixir préparé par un Médecin expérimenté.", "Plat", "Tous", "Grade", 0, None, 0,0,0,0,0,0, 150,80, 1, 0, 1),
+
+    # ===== CARTES (uniquement via /navigateur dresser_carte, jamais achetables) =====
+    ("Carte des courants côtiers", "Une carte tracée à partir d'un vieux parchemin.", "Plat", "Tous", "Commun", 0, None, 0,0,0,0,0,0, 0,50, 1, 0, 1),
+    ("Atlas des vents", "Un atlas détaillé, fruit d'un travail méticuleux.", "Plat", "Tous", "Aiguisé", 0, None, 0,0,0,0,0,0, 0,90, 1, 0, 1),
+    ("Carte des abysses lumineuses", "Une carte rarissime dressée par un Navigateur chevronné.", "Plat", "Tous", "Grade", 0, None, 0,0,0,0,0,0, 40,140, 1, 0, 1),
 ]
