@@ -115,7 +115,7 @@ async def explorer(interaction: discord.Interaction):
     niveaux_gagnes, nouveau_niveau = await add_xp(interaction.guild_id, interaction.user.id, xp_gain, xpc_gain)
     await increment_quest_progress(interaction.guild_id, interaction.user.id, "explorer")
 
-    embed = discord.Embed(title="🗺️ Exploration", description=message, color=0x1B3A5C)
+    embed = discord.Embed(title=f"🗺️ Exploration — {player['ile']}", description=message, color=0x1B3A5C)
     embed.set_footer(text=f"🌊 One Piece Bot • +{xp_gain} XP • -{endurance_cost} endurance")
     await interaction.followup.send(embed=embed)
 
