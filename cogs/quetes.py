@@ -130,8 +130,10 @@ async def quetes_principale(interaction: discord.Interaction):
     embed.add_field(name="Récompense", value=f"{berrys:,}฿ • {xp} XP" + (f" • Titre : {titre_debloque}" if titre_debloque else ""), inline=False)
     embed.set_footer(text="🌊 One Piece Bot • Quête principale")
 
-    view = PrincipaleView(interaction.guild_id, interaction.user.id) if row["progres"] >= row["cible"] else None
-    await interaction.followup.send(embed=embed, view=view)
+    if row["progres"] >= row["cible"]:
+        await interaction.followup.send(embed=embed, view=PrincipaleView(interaction.guild_id, interaction.user.id))
+    else:
+        await interaction.followup.send(embed=embed)
 
 
 class SecondaireClaimButton(discord.ui.Button):
@@ -182,19 +184,26 @@ async def quetes_secondaires(interaction: discord.Interaction):
         return
 
     embed = discord.Embed(title="📋 Tes quêtes secondaires", color=0x3498DB)
+    has_completed = False
     for r in rows:
         quete = next((q for q in QUETES_SECONDAIRES if q[0] == r["ref_id"]), None)
         if not quete:
             continue
         titre, description, berrys, xp = quete[1], quete[2], quete[5], quete[6]
         statut = "🎉" if r["progres"] >= r["cible"] else ""
+        if r["progres"] >= r["cible"]:
+            has_completed = True
         embed.add_field(
             name=f"{statut} {titre}",
             value=f"{description}\n{barre(r['progres'], r['cible'])} {r['progres']}/{r['cible']} • {berrys}฿, {xp} XP",
             inline=False
         )
     embed.set_footer(text="🌊 One Piece Bot • Quêtes secondaires")
-    await interaction.followup.send(embed=embed, view=SecondairesView(interaction.guild_id, interaction.user.id, rows))
+
+    if has_completed:
+        await interaction.followup.send(embed=embed, view=SecondairesView(interaction.guild_id, interaction.user.id, rows))
+    else:
+        await interaction.followup.send(embed=embed)
 
 
 async def secondaire_disponible_autocomplete(interaction: discord.Interaction, current: str):
