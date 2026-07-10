@@ -39,6 +39,7 @@ from cogs.guilde import setup_guilde_commands
 from cogs.forgeron import setup_forgeron_commands
 from cogs.medecin import setup_medecin_commands
 from cogs.navigateur import setup_navigateur_commands
+from cogs.charpentier import setup_charpentier_commands
 from cogs.guide import setup_guide_commands, GuideView
 from cogs.quetes import setup_quetes_commands
 from cogs.recompenses import setup_recompenses_commands
@@ -98,6 +99,7 @@ setup_guilde_commands(bot)
 setup_forgeron_commands(bot)
 setup_medecin_commands(bot)
 setup_navigateur_commands(bot)
+setup_charpentier_commands(bot)
 setup_guide_commands(bot)
 setup_quetes_commands(bot)
 setup_recompenses_commands(bot)
