@@ -42,6 +42,7 @@ from cogs.navigateur import setup_navigateur_commands
 from cogs.guide import setup_guide_commands, GuideView
 from cogs.quetes import setup_quetes_commands
 from cogs.recompenses import setup_recompenses_commands
+from cogs.monde import setup_monde_commands
 
 app = Flask('')
 
@@ -96,6 +97,7 @@ setup_navigateur_commands(bot)
 setup_guide_commands(bot)
 setup_quetes_commands(bot)
 setup_recompenses_commands(bot)
+setup_monde_commands(bot)
 
 @bot.event
 async def on_ready():
