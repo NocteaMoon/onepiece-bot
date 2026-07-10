@@ -4,6 +4,7 @@ from database.db import get_pool
 from data.quetes import OBJECTIFS
 from data.quetes_principales import QUETES_PRINCIPALES
 from data.quetes_secondaires import QUETES_SECONDAIRES
+from utils.titres import unlock_titre
 
 CODES = list(OBJECTIFS.keys())
 MAX_SECONDAIRES_ACTIVES = 2
@@ -137,8 +138,10 @@ async def claim_main_quest(guild_id: int, user_id: int):
         async with conn.transaction():
             await conn.execute("UPDATE quest_progress SET reclame = TRUE WHERE id = $1", row["id"])
             await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", guild_id, user_id, berrys)
-            if titre_debloque:
-                await conn.execute("UPDATE players SET titre = $3 WHERE guild_id=$1 AND user_id=$2", guild_id, user_id, titre_debloque)
+
+    if titre_debloque:
+        await unlock_titre(guild_id, user_id, titre_debloque)
+
     return quete[1], berrys, xp, titre_debloque
 
 
