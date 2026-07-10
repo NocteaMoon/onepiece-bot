@@ -24,7 +24,7 @@ CATALOGUE = [
     ("Manteau renforcé", "Un manteau épais. +8 défense, +10 PV.", "Corps", "Tous", "Grade", 550, "corps", 0,8,0,0,10,0, 0,0, 150, 5, 1),
     ("Armure d'écailles", "Solide et souple. +14 défense, +20 PV.", "Corps", "Tous", "Grand Grade", 1500, "corps", 0,14,0,0,20,0, 0,0, 200, 12, 1),
 
-    # ===== NAVIRES (communs) =====
+    # ===== NAVIRES (communs, achetables) =====
     ("Barque de pêcheur", "Un frêle esquif pour débuter.", "Navire", "Tous", "Commun", 250, "navire", 0,0,2,0,0,0, 0,0, 100, -1, 1),
     ("Sloop rapide", "Un petit voilier agile. +5 vitesse.", "Navire", "Tous", "Grade", 900, "navire", 0,0,5,0,0,0, 0,0, 150, 5, 1),
     ("Caravelle robuste", "Un navire fiable. +6 défense, +4 vitesse.", "Navire", "Tous", "Grand Grade", 2500, "navire", 0,6,4,0,0,0, 0,0, 250, 12, 1),
@@ -83,6 +83,11 @@ CATALOGUE = [
     ("Encre de seiche", "Une encre naturelle idéale pour tracer des cartes.", "Ingrédient", "Tous", "Aiguisé", 21, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
     ("Corail luminescent", "Rare corail qui brille dans l'obscurité, précieux pour les navigateurs.", "Ingrédient", "Tous", "Grade", 58, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
 
+    # ===== BOIS ET CORDAGES (Charpentier) =====
+    ("Planche de bois flotté", "Du bois solide échoué sur le rivage, parfait pour réparer un navire.", "Ingrédient", "Tous", "Commun", 11, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Corde tressée", "Une corde robuste tressée à la main.", "Ingrédient", "Tous", "Aiguisé", 26, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Voile renforcée", "Une toile épaisse et rare, résistante aux pires tempêtes.", "Ingrédient", "Tous", "Grade", 60, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+
     # ===== PLATS (uniquement via /cuisiner, jamais achetables — stock à 0) =====
     ("Soupe de fortune", "Une soupe chaude et réconfortante, préparée avec le peu qu'on a.", "Plat", "Tous", "Commun", 40, None, 0,0,0,0,0,0, 40,0, 1, 0, 1),
     ("Riz sauté du marin", "Un plat roboratif qui redonne de l'énergie avant une longue traversée.", "Plat", "Tous", "Commun", 45, None, 0,0,0,0,0,0, 0,50, 1, 0, 1),
@@ -105,4 +110,9 @@ CATALOGUE = [
     ("Carte des courants côtiers", "Une carte tracée à partir d'un vieux parchemin.", "Plat", "Tous", "Commun", 0, None, 0,0,0,0,0,0, 0,50, 1, 0, 1),
     ("Atlas des vents", "Un atlas détaillé, fruit d'un travail méticuleux.", "Plat", "Tous", "Aiguisé", 0, None, 0,0,0,0,0,0, 0,90, 1, 0, 1),
     ("Carte des abysses lumineuses", "Une carte rarissime dressée par un Navigateur chevronné.", "Plat", "Tous", "Grade", 0, None, 0,0,0,0,0,0, 40,140, 1, 0, 1),
+
+    # ===== NAVIRES DU CHARPENTIER (uniquement via /charpentier construire, jamais achetables) =====
+    ("Radeau renforcé", "Un radeau solidifié à la main, bien plus fiable qu'une simple planche.", "Navire", "Tous", "Commun", 0, "navire", 0,1,1,0,0,0, 0,0, 110, 0, 1),
+    ("Voilier artisanal", "Un voilier façonné avec soin par un Charpentier talentueux.", "Navire", "Tous", "Aiguisé", 0, "navire", 0,3,3,0,10,0, 0,0, 160, 0, 1),
+    ("Navire du charpentier légendaire", "Un chef-d'œuvre naval, fruit d'un savoir-faire rarissime.", "Navire", "Tous", "Grade", 0, "navire", 0,10,8,0,30,0, 0,0, 260, 0, 8),
 ]
