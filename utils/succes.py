@@ -1,41 +1,59 @@
 from database.db import get_pool
-from utils.metiers import get_rang
-from data.succes import SUCCES
+from data.succes import FAMILLES
 
 GRADES_CHEFS = ("Capitaine", "Amiral", "Meneur", "Maitre")
 
+DESCRIPTIONS = {
+    "niveau_min": lambda s: f"Atteindre le niveau {s}",
+    "total_min": lambda s: f"Posséder au moins {s:,}฿ au total (liquide + banque)",
+    "prime_min": lambda s: f"Atteindre {s:,}฿ de prime",
+    "mers_visitees_min": lambda s: f"Avoir exploré {s} mer(s) différente(s)",
+    "metier_xp_min": lambda s: f"Atteindre {s} XP dans ton métier",
+    "chef_organisation": lambda s: "Diriger une organisation (Capitaine, Amiral, Meneur ou Maître de Guilde)",
+    "org_prime_min": lambda s: f"Ton organisation cumule au moins {s:,}฿ de prime parmi ses membres",
+    "tournois_gagnes_min": lambda s: f"Remporter {s} tournoi(s)",
+    "boss_vaincus_min": lambda s: f"Participer à la victoire contre {s} boss mondial/mondiaux",
+}
 
-async def _condition_remplie(guild_id, user_id, player, check_type, param):
+
+async def record_mer_visitee(guild_id: int, user_id: int, mer: str):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO mers_visitees (guild_id, user_id, mer) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING",
+            guild_id, user_id, mer
+        )
+
+
+async def _condition_remplie(guild_id, user_id, player, check_type, seuil):
     if check_type == "niveau_min":
-        return player["niveau"] >= param
-    if check_type == "banque_min":
-        return player["banque"] >= param
+        return player["niveau"] >= seuil
     if check_type == "total_min":
-        return (player["berrys"] + player["banque"]) >= param
+        return (player["berrys"] + player["banque"]) >= seuil
     if check_type == "prime_min":
-        return player["prime"] >= param
-    if check_type == "metier_maitre":
-        if not player["metier"]:
-            return False
-        return get_rang(player["metier_xp"]) >= 2
-    if check_type == "chef_organisation":
-        if not player["grade_equipage"]:
-            return False
-        return player["grade_equipage"] in GRADES_CHEFS
-    if check_type == "mer_atteinte":
-        return player["mer"] == param
-    if check_type == "boss_mondial_vaincu":
+        return player["prime"] >= seuil
+    if check_type == "mers_visitees_min":
         pool = get_pool()
         async with pool.acquire() as conn:
-            row = await conn.fetchrow("""
-                SELECT 1 FROM world_boss_participants wp
-                JOIN world_boss wb ON wp.world_boss_id = wb.id
-                WHERE wp.guild_id=$1 AND wp.user_id=$2 AND wb.pv <= 0
-                LIMIT 1
-            """, guild_id, user_id)
-        return row is not None
-    if check_type == "tournoi_gagne":
-        return bool(player["succes_tournoi_gagne"])
+            count = await conn.fetchval(
+                "SELECT COUNT(DISTINCT mer) FROM mers_visitees WHERE guild_id=$1 AND user_id=$2",
+                guild_id, user_id
+            )
+        return (count or 0) >= seuil
+    if check_type == "metier_xp_min":
+        return bool(player["metier"]) and player["metier_xp"] >= seuil
+    if check_type == "chef_organisation":
+        return bool(player["grade_equipage"]) and player["grade_equipage"] in GRADES_CHEFS
+    if check_type == "org_prime_min":
+        if not player["equipage_id"] or not player["grade_equipage"] or player["grade_equipage"] not in GRADES_CHEFS:
+            return False
+        from utils.equipages import prime_cumulee
+        total = await prime_cumulee(guild_id, player["equipage_id"])
+        return total >= seuil
+    if check_type == "tournois_gagnes_min":
+        return player["nb_tournois_gagnes"] >= seuil
+    if check_type == "boss_vaincus_min":
+        return player["nb_boss_vaincus"] >= seuil
     return False
 
 
@@ -46,29 +64,49 @@ async def get_claimed_codes(guild_id, user_id):
     return {r["code"] for r in rows}
 
 
-async def get_succes_status(guild_id, user_id, player):
+async def get_family_status(guild_id, user_id, player, famille_key):
+    nom, check_type, tiers = FAMILLES[famille_key]
     claimed = await get_claimed_codes(guild_id, user_id)
     result = []
-    for code, titre, description, berrys, check_type, param in SUCCES:
+    for i, (seuil, berrys, titre) in enumerate(tiers):
+        code = f"{famille_key}_{i+1}"
         if code in claimed:
             statut = "reclame"
         else:
-            ok = await _condition_remplie(guild_id, user_id, player, check_type, param)
+            ok = await _condition_remplie(guild_id, user_id, player, check_type, seuil)
             statut = "atteignable" if ok else "non_atteint"
+        description = DESCRIPTIONS[check_type](seuil)
         result.append({"code": code, "titre": titre, "description": description, "berrys": berrys, "statut": statut})
-    return result
+    return nom, result
+
+
+async def get_overview(guild_id, user_id, player):
+    total = 0
+    reclames = 0
+    for famille_key in FAMILLES:
+        _, statuts = await get_family_status(guild_id, user_id, player, famille_key)
+        total += len(statuts)
+        reclames += sum(1 for s in statuts if s["statut"] == "reclame")
+    return reclames, total
 
 
 async def claim_succes(guild_id, user_id, player, code):
-    entry = next((s for s in SUCCES if s[0] == code), None)
-    if entry is None:
+    famille_key, index_str = code.rsplit("_", 1)
+    if famille_key not in FAMILLES:
         return None
-    _, titre, description, berrys, check_type, param = entry
+    _, check_type, tiers = FAMILLES[famille_key]
+    try:
+        index = int(index_str) - 1
+    except ValueError:
+        return None
+    if index < 0 or index >= len(tiers):
+        return None
+    seuil, berrys, titre = tiers[index]
 
     claimed = await get_claimed_codes(guild_id, user_id)
     if code in claimed:
         return None
-    ok = await _condition_remplie(guild_id, user_id, player, check_type, param)
+    ok = await _condition_remplie(guild_id, user_id, player, check_type, seuil)
     if not ok:
         return None
 
