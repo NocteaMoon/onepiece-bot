@@ -8,7 +8,8 @@ def embed_accueil():
         description=(
             "Bienvenue à bord ! Ce carnet te guide à travers toutes les possibilités du monde.\n\n"
             "Utilise le menu déroulant ci-dessous pour explorer chaque section : ton personnage, "
-            "l'économie, l'aventure, les quêtes, les récompenses, le combat, les métiers, les organisations, les mini-jeux...\n\n"
+            "l'économie, l'aventure, les quêtes, les récompenses, les succès, le combat, les métiers, "
+            "les organisations, les mini-jeux...\n\n"
             "🌊 Bon vent, moussaillon !"
         ),
         color=0x1B3A5C
@@ -104,6 +105,23 @@ def embed_recompenses():
     embed.set_footer(text="🌊 One Piece Bot • Guide du joueur")
     return embed
 
+def embed_succes():
+    embed = discord.Embed(
+        title="🏆 Succès",
+        description=(
+            "**`/succes`** — Un menu déroulant classe tes hauts faits par catégorie : Niveau, Richesse, "
+            "Prime, Mers explorées, Métier, Commandement, Organisation, Tournois, Boss mondiaux.\n\n"
+            "Chaque catégorie contient plusieurs **paliers progressifs** — les premiers sont faciles à "
+            "atteindre, les derniers demandent un vrai investissement. De nouveaux paliers peuvent être "
+            "ajoutés à tout moment, la liste ne s'arrête jamais vraiment !\n\n"
+            "Un succès accompli affiche 🎉 avec un bouton pour le réclamer — comme pour les quêtes, "
+            "la récompense n'est jamais automatique."
+        ),
+        color=0xD4A017
+    )
+    embed.set_footer(text="🌊 One Piece Bot • Guide du joueur")
+    return embed
+
 def embed_combat():
     embed = discord.Embed(
         title="⚔️ Combat",
@@ -167,6 +185,8 @@ def embed_minijeux():
             "`/casino machine-a-sous|des|roulette|blackjack`\n\n"
             "**Multijoueurs :** `/regate` (course 2-4), `/chasse_tresor` (coopératif 2-4), "
             "`/raid_boss` (coopératif 2-4), `/tournoi` (bracket à 4), `/bras_de_fer_duel` (1v1)\n\n"
+            "**Boss mondial :** apparition aléatoire et imprévisible sur une mer, ouvert à tous les "
+            "joueurs présents. `/boss_mondial statut` pour vérifier si un combat est en cours.\n\n"
             "La plupart fonctionnent avec de vrais boutons interactifs — tente ta chance !"
         ),
         color=0xE67E22
@@ -195,6 +215,7 @@ SECTIONS = {
     "aventure": embed_aventure,
     "quetes": embed_quetes,
     "recompenses": embed_recompenses,
+    "succes": embed_succes,
     "combat": embed_combat,
     "metiers": embed_metiers,
     "organisations": embed_organisations,
@@ -212,6 +233,7 @@ class GuideSelect(discord.ui.Select):
             discord.SelectOption(label="Aventure", value="aventure", emoji="🗺️"),
             discord.SelectOption(label="Quêtes", value="quetes", emoji="📜"),
             discord.SelectOption(label="Récompenses", value="recompenses", emoji="🎁"),
+            discord.SelectOption(label="Succès", value="succes", emoji="🏆"),
             discord.SelectOption(label="Combat", value="combat", emoji="⚔️"),
             discord.SelectOption(label="Métiers", value="metiers", emoji="🔧"),
             discord.SelectOption(label="Organisations", value="organisations", emoji="🏴‍☠️"),
