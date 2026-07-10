@@ -1,4 +1,4 @@
-METIERS_DISPONIBLES = ["Cuisinier", "Forgeron", "Médecin", "Navigateur"]
+METIERS_DISPONIBLES = ["Cuisinier", "Forgeron", "Médecin", "Navigateur", "Charpentier"]
 
 RANG_LABELS = {0: "Apprenti", 1: "Confirmé", 2: "Maître"}
 SEUILS_RANG = {0: 0, 1: 150, 2: 400}
