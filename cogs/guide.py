@@ -61,7 +61,8 @@ def embed_aventure():
             "(contrairement à `/voyager` qui change carrément de mer et coûte bien plus cher).\n\n"
             "**`/carte`** — Affiche ton île actuelle avec sa description, et les autres îles accessibles.\n\n"
             "**`/voyager`** — Change de mer. Chaque mer demande un niveau minimum, et le trajet réserve "
-            "son lot de surprises (calme, tempête, découverte...).\n\n"
+            "son lot de surprises (calme, tempête, découverte...) — un mauvais événement peut abîmer ton "
+            "arme, ton armure ET ton navire équipés !\n\n"
             "Toutes ces actions coûtent de l'**endurance**, qui se régénère automatiquement avec le temps."
         ),
         color=0x1B3A5C
@@ -145,15 +146,16 @@ def embed_metiers():
         title="🔧 Les Métiers — bien comprendre le système",
         description=(
             "Les métiers sont **réservés à la faction Civil**. Choisis-en un avec `/metier choisir`, "
-            "puis suis ta progression avec `/metier voir`. Les 4 métiers ont maintenant chacun plusieurs "
-            "recettes débloquées par rang, comme la cuisine !\n\n"
+            "puis suis ta progression avec `/metier voir`. Chaque métier a ses propres recettes débloquées par rang.\n\n"
             "**🍳 Cuisinier** → `/cuisiner` transforme tes ingrédients récoltés en plats qui soignent.\n"
             "**🔨 Forgeron** → `/forgeron reparer` restaure la durabilité de ton équipement, "
             "`/forgeron forger` crée de nouvelles armes/armures à partir de minerais.\n"
             "**💊 Médecin** → `/medecin soigner` restaure les PV et lève le K.O. d'un joueur, "
             "`/medecin preparer` brasse des remèdes réutilisables à partir d'herbes.\n"
             "**🧭 Navigateur** → `/navigateur route_sure` garantit un voyage sans risque, "
-            "`/navigateur dresser_carte` crée des cartes à partir de matériaux de navigation.\n\n"
+            "`/navigateur dresser_carte` crée des cartes à partir de matériaux de navigation.\n"
+            "**🚢 Charpentier** → `/charpentier reparer_navire` restaure la durabilité de ton navire équipé, "
+            "`/charpentier construire` bâtit de nouveaux navires exclusifs à partir de bois et cordages.\n\n"
             "⚠️ **Attention à ne pas confondre deux systèmes de rangs différents :**\n"
             "• Ton **rang de métier** (Apprenti → Confirmé → Maître) = ta compétence personnelle, "
             "progresse via `metier_xp` en pratiquant ton métier.\n"
