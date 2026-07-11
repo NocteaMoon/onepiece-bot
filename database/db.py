@@ -12,7 +12,7 @@ SALON_COLUMNS = [
     "salon_equipages", "salon_marine", "salon_revolutionnaires",
     "salon_classements", "salon_quetes", "salon_succes",
     "salon_taverne", "salon_regates", "salon_tresor", "salon_creation", "salon_guilde",
-    "salon_carnet", "salon_recompenses",
+    "salon_carnet", "salon_recompenses", "salon_cartes",
 ]
 
 async def init_db():
@@ -295,6 +295,26 @@ async def init_db():
                 user_id BIGINT,
                 titre TEXT,
                 PRIMARY KEY (guild_id, user_id, titre)
+            )
+        """)
+
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS cards_owned (
+                guild_id BIGINT,
+                user_id BIGINT,
+                code TEXT,
+                quantite INT DEFAULT 0,
+                PRIMARY KEY (guild_id, user_id, code)
+            )
+        """)
+
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS card_collections_claimed (
+                guild_id BIGINT,
+                user_id BIGINT,
+                categorie TEXT,
+                claimed_at TIMESTAMP DEFAULT NOW(),
+                PRIMARY KEY (guild_id, user_id, categorie)
             )
         """)
 
