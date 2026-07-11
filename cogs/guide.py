@@ -26,6 +26,8 @@ def embed_profil():
             "**`/profil`** — Ta fiche complète : niveau, Berrys, prime, stats de combat, position, équipage...\n\n"
             "**`/titre choisir`** — Équipe le titre de ton choix parmi ceux que tu as débloqués (au fil des "
             "quêtes principales notamment). **`/titre voir`** liste tous tes titres gagnés.\n\n"
+            "💭 On raconte qu'une force cachée grandirait en secret chez les aventuriers les plus déterminés, "
+            "prête à se révéler au moment le moins attendu...\n\n"
             "Tu gagnes de l'XP en faisant à peu près tout (explorer, pêcher, combattre, cuisiner...). "
             "En montant de niveau, tes stats augmentent et tu es entièrement soigné !"
         ),
@@ -144,7 +146,10 @@ def embed_pouvoirs():
             "• `/haki entrainer` (dans #entrainement) — t'entraîner en Armement (renforce l'attaque) ou "
             "Observation (renforce l'esquive). Chance de progression à chaque session, pas de garantie !\n"
             "• **Le Haki des Rois** est le plus rare de tous — comme l'éveil de fruit, il se déclenche spontanément "
-            "après une victoire, sans jamais pouvoir être entraîné directement."
+            "après une victoire, sans jamais pouvoir être entraîné directement.\n\n"
+            "**⚔️ Maîtrise d'armes** — `/maitrise` pour consulter tes 6 maîtrises (Épée, Poings, Lance, Pistolet, "
+            "Fusil, Arc). Elles progressent **automatiquement** en te battant avec l'arme équipée, aucune commande "
+            "d'entraînement dédiée : plus tu utilises un type d'arme, plus tu deviens naturellement doué avec !"
         ),
         color=0x8E44AD
     )
@@ -161,7 +166,8 @@ def embed_combat():
             "⚠️ **En cas de défaite en PvE** : tu perds un peu de Berrys liquides, ton équipement s'abîme "
             "(pense à un Forgeron !), et tu es K.O. quelques minutes (les actions pacifiques restent possibles).\n\n"
             "Équipe de bonnes armes/armures via `/inventaire equiper` pour de meilleures stats en combat — "
-            "et n'oublie pas que ton **Fruit du Démon** et ton **Haki** boostent aussi tes stats effectives !"
+            "et n'oublie pas que ton **Fruit du Démon**, ton **Haki** et ta **maîtrise d'arme** boostent "
+            "aussi tes stats effectives !"
         ),
         color=0xC0392B
     )
