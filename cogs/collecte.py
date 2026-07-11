@@ -8,13 +8,14 @@ POOL_PECHE = [("Poisson argenté", 40), ("Anguille des courants", 20), ("Poisson
 LIEUX_CHASSE = ["l'orée de la forêt", "les hautes herbes", "le flanc de la colline", "un sentier de gibier", "les broussailles denses", "une clairière isolée"]
 POOL_CHASSE = [("Viande de sanglier des mers", 55), ("Plume de faucon-tonnerre", 30), ("Peau de varan des dunes", 15), ("RIEN", 30)]
 
-LIEUX_RECOLTE = ["un bosquet fruitier", "une prairie sauvage", "le sous-bois humide", "les rochers moussus", "un jardin abandonné", "une pente ensoleillée", "une veine de minerai affleurante", "un carré d'herbes médicinales", "un rivage jonché de bois flotté", "les abords d'une taverne animée"]
+LIEUX_RECOLTE = ["un bosquet fruitier", "une prairie sauvage", "le sous-bois humide", "les rochers moussus", "un jardin abandonné", "une pente ensoleillée", "une veine de minerai affleurante", "un carré d'herbes médicinales", "un rivage jonché de bois flotté", "les abords d'une taverne animée", "des ruines à moitié enfouies"]
 POOL_RECOLTE = [
-    ("Baies sucrées", 23), ("Racine noueuse", 21), ("Champignon des embruns", 11), ("Fleur de corail", 3),
-    ("Minerai de fer", 21), ("Minerai d'étain", 10), ("Pépite d'acier bleu", 3),
-    ("Herbe apaisante", 21), ("Feuille de saule marin", 10), ("Racine de vitalité", 3),
-    ("Planche de bois flotté", 21), ("Corde tressée", 10), ("Voile renforcée", 3),
-    ("Corde de luth", 21), ("Roseau à vent", 10), ("Parchemin de mélodie", 3),
+    ("Baies sucrées", 20), ("Racine noueuse", 19), ("Champignon des embruns", 10), ("Fleur de corail", 3),
+    ("Minerai de fer", 19), ("Minerai d'étain", 9), ("Pépite d'acier bleu", 3),
+    ("Herbe apaisante", 19), ("Feuille de saule marin", 9), ("Racine de vitalité", 3),
+    ("Planche de bois flotté", 19), ("Corde tressée", 9), ("Voile renforcée", 3),
+    ("Corde de luth", 19), ("Roseau à vent", 9), ("Parchemin de mélodie", 3),
+    ("Fragment de poterie ancienne", 19), ("Éclat de pierre gravée", 9), ("Médaillon oublié", 3),
     ("RIEN", 20),
 ]
 
