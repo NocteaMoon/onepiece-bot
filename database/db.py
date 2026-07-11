@@ -12,7 +12,7 @@ SALON_COLUMNS = [
     "salon_equipages", "salon_marine", "salon_revolutionnaires",
     "salon_classements", "salon_quetes", "salon_succes",
     "salon_taverne", "salon_regates", "salon_tresor", "salon_creation", "salon_guilde",
-    "salon_carnet", "salon_recompenses", "salon_cartes",
+    "salon_carnet", "salon_recompenses", "salon_cartes", "salon_entrainement",
 ]
 
 async def init_db():
