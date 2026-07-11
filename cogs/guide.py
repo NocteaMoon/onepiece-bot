@@ -83,7 +83,9 @@ def embed_quetes():
             "**`/quetes secondaires`** — Des missions optionnelles au choix (2 maximum en même temps). "
             "Utilise `/quetes secondaire_rejoindre` pour en accepter une, `/quetes secondaire_abandonner` "
             "pour en libérer une si tu changes d'avis.\n\n"
-            "💡 Toutes progressent automatiquement dès que tu joues normalement (explorer, combattre, voyager...)."
+            "💡 Toutes progressent automatiquement dès que tu joues normalement (explorer, combattre, voyager...). "
+            "Les quêtes liées à un métier (cuisiner, forger, soigner...) ne sont proposées qu'aux joueurs "
+            "ayant le métier correspondant !"
         ),
         color=0xD4A017
     )
@@ -155,7 +157,9 @@ def embed_metiers():
             "**🧭 Navigateur** → `/navigateur route_sure` garantit un voyage sans risque, "
             "`/navigateur dresser_carte` crée des cartes à partir de matériaux de navigation.\n"
             "**🚢 Charpentier** → `/charpentier reparer_navire` restaure la durabilité de ton navire équipé, "
-            "`/charpentier construire` bâtit de nouveaux navires exclusifs à partir de bois et cordages.\n\n"
+            "`/charpentier construire` bâtit de nouveaux navires exclusifs à partir de bois et cordages.\n"
+            "**🎵 Musicien** → `/musicien jouer` gagne des Berrys en jouant pour la foule, "
+            "`/musicien composer` crée des partitions procurant des soins à partir d'instruments.\n\n"
             "⚠️ **Attention à ne pas confondre deux systèmes de rangs différents :**\n"
             "• Ton **rang de métier** (Apprenti → Confirmé → Maître) = ta compétence personnelle, "
             "progresse via `metier_xp` en pratiquant ton métier.\n"
