@@ -53,6 +53,7 @@ from cogs.titre import setup_titre_commands
 from cogs.cartes import setup_cartes_commands
 from cogs.fruit import setup_fruit_commands
 from cogs.haki import setup_haki_commands
+from cogs.maitrise import setup_maitrise_commands
 
 app = Flask('')
 
@@ -118,6 +119,7 @@ setup_titre_commands(bot)
 setup_cartes_commands(bot)
 setup_fruit_commands(bot)
 setup_haki_commands(bot)
+setup_maitrise_commands(bot)
 
 @bot.event
 async def on_ready():
