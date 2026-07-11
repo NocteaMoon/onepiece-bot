@@ -10,6 +10,8 @@ from utils.announcements import announce_level_up
 from utils.quetes import increment_quest_progress
 from utils.fruits import check_eveil
 from utils.haki import check_eveil_rois
+from utils.maitrise import progresser_maitrise, LABELS as MAITRISE_LABELS
+from utils.xp_cache import check_xp_cache_paliers, STAT_LABELS
 from data.ennemis import ENNEMIS
 
 COUT_ENDURANCE = 20
@@ -119,6 +121,16 @@ class CombatView(discord.ui.View):
                 color=0xD4A017
             ))
 
+        nouveaux_paliers = await check_xp_cache_paliers(self.guild_id, self.user_id)
+        for seuil, berrys_palier, stat, valeur in nouveaux_paliers:
+            label = STAT_LABELS.get(stat, stat)
+            await interaction.followup.send(embed=discord.Embed(
+                title="🌟 Une force insoupçonnée grandit en toi...",
+                description=f"{interaction.user.mention} ressent une expérience cachée refaire surface : "
+                             f"**+{berrys_palier:,}฿** et **+{valeur} {label}** de façon permanente !",
+                color=0xF4C430
+            ))
+
     async def appliquer_defaite(self):
         self.termine = True
         for c in self.children:
@@ -169,6 +181,12 @@ class CombatView(discord.ui.View):
         degats = max(1, round(self.eff["force"] * random.uniform(0.85, 1.15) - self.enemy["defense"] * 0.5))
         self.enemy["pv"] -= degats
         self.log.append(f"Tu infliges **{degats}** dégâts !")
+
+        nouveau_palier_maitrise = await progresser_maitrise(self.guild_id, self.user_id, self.eff.get("type_arme_equipee"))
+        if nouveau_palier_maitrise is not None:
+            type_arme = self.eff.get("type_arme_equipee")
+            label = MAITRISE_LABELS.get(type_arme, type_arme)
+            self.log.append(f"💪 Ta maîtrise en **{label}** progresse ! ({nouveau_palier_maitrise})")
 
         if self.enemy["pv"] <= 0:
             await self.appliquer_victoire(interaction)
