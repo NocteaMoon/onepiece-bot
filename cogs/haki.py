@@ -37,7 +37,7 @@ async def haki_voir(interaction: discord.Interaction, membre: discord.Member = N
 @haki_group.command(name="entrainer", description="S'entraîner pour progresser en Haki (Armement ou Observation)")
 @app_commands.describe(type="Le type de Haki à entraîner")
 @app_commands.choices(type=TYPE_CHOICES)
-@require_salon("salon_taverne")
+@require_salon("salon_entrainement")
 async def haki_entrainer(interaction: discord.Interaction, type: app_commands.Choice[str]):
     await interaction.response.defer()
     player = await get_player(interaction.guild_id, interaction.user.id)
