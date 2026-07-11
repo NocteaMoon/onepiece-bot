@@ -197,6 +197,7 @@ async def init_db():
                 cree_le TIMESTAMP DEFAULT NOW()
             )
         """)
+        await conn.execute("ALTER TABLE shop_items ADD COLUMN IF NOT EXISTS type_arme TEXT")
 
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS inventory (
@@ -315,6 +316,15 @@ async def init_db():
                 categorie TEXT,
                 claimed_at TIMESTAMP DEFAULT NOW(),
                 PRIMARY KEY (guild_id, user_id, categorie)
+            )
+        """)
+
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS xp_cache_paliers_atteints (
+                guild_id BIGINT,
+                user_id BIGINT,
+                palier TEXT,
+                PRIMARY KEY (guild_id, user_id, palier)
             )
         """)
 
