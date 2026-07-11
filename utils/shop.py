@@ -11,18 +11,18 @@ async def seed_shop_if_needed(guild_id: int):
         for item in CATALOGUE:
             (nom, description, categorie, faction, rarete, prix, slot,
              b_force, b_defense, b_vitesse, b_agilite, b_pv, b_chance,
-             soin_pv, soin_endurance, durabilite_max, stock, niveau_requis) = item
+             soin_pv, soin_endurance, durabilite_max, stock, niveau_requis, type_arme) = item
             if nom in existing_names:
                 continue
             await conn.execute("""
                 INSERT INTO shop_items (
                     guild_id, nom, description, categorie, faction, rarete, prix, slot,
                     bonus_force, bonus_defense, bonus_vitesse, bonus_agilite, bonus_pv, bonus_chance,
-                    soin_pv, soin_endurance, durabilite_max, stock, niveau_requis
-                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+                    soin_pv, soin_endurance, durabilite_max, stock, niveau_requis, type_arme
+                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
             """, guild_id, nom, description, categorie, faction, rarete, prix, slot,
                  b_force, b_defense, b_vitesse, b_agilite, b_pv, b_chance,
-                 soin_pv, soin_endurance, durabilite_max, stock, niveau_requis)
+                 soin_pv, soin_endurance, durabilite_max, stock, niveau_requis, type_arme)
 
 
 async def get_visible_items(guild_id: int, faction: str, categorie: str = None):
