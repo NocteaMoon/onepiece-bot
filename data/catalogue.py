@@ -88,6 +88,11 @@ CATALOGUE = [
     ("Corde tressée", "Une corde robuste tressée à la main.", "Ingrédient", "Tous", "Aiguisé", 26, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
     ("Voile renforcée", "Une toile épaisse et rare, résistante aux pires tempêtes.", "Ingrédient", "Tous", "Grade", 60, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
 
+    # ===== INSTRUMENTS ET PARTITIONS (Musicien) =====
+    ("Corde de luth", "Une corde de rechange pour instrument à cordes.", "Ingrédient", "Tous", "Commun", 10, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Roseau à vent", "Un roseau sec parfait pour tailler un instrument à vent.", "Ingrédient", "Tous", "Aiguisé", 23, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Parchemin de mélodie", "Un parchemin rare porteur d'une mélodie oubliée.", "Ingrédient", "Tous", "Grade", 57, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+
     # ===== PLATS (uniquement via /cuisiner, jamais achetables — stock à 0) =====
     ("Soupe de fortune", "Une soupe chaude et réconfortante, préparée avec le peu qu'on a.", "Plat", "Tous", "Commun", 40, None, 0,0,0,0,0,0, 40,0, 1, 0, 1),
     ("Riz sauté du marin", "Un plat roboratif qui redonne de l'énergie avant une longue traversée.", "Plat", "Tous", "Commun", 45, None, 0,0,0,0,0,0, 0,50, 1, 0, 1),
@@ -115,4 +120,9 @@ CATALOGUE = [
     ("Radeau renforcé", "Un radeau solidifié à la main, bien plus fiable qu'une simple planche.", "Navire", "Tous", "Commun", 0, "navire", 0,1,1,0,0,0, 0,0, 110, 0, 1),
     ("Voilier artisanal", "Un voilier façonné avec soin par un Charpentier talentueux.", "Navire", "Tous", "Aiguisé", 0, "navire", 0,3,3,0,10,0, 0,0, 160, 0, 1),
     ("Navire du charpentier légendaire", "Un chef-d'œuvre naval, fruit d'un savoir-faire rarissime.", "Navire", "Tous", "Grade", 0, "navire", 0,10,8,0,30,0, 0,0, 260, 0, 8),
+
+    # ===== PARTITIONS (uniquement via /musicien composer, jamais achetables) =====
+    ("Partition improvisée", "Une mélodie simple griffonnée sur le vif.", "Partition", "Tous", "Commun", 0, None, 0,0,0,0,0,0, 0,40, 1, 0, 1),
+    ("Partition entraînante", "Un air entraînant qui redonne du cœur à l'ouvrage.", "Partition", "Tous", "Aiguisé", 0, None, 0,0,0,0,0,0, 30,50, 1, 0, 1),
+    ("Symphonie de la mer", "Une œuvre rare composée par un Musicien chevronné.", "Partition", "Tous", "Grade", 0, None, 0,0,0,0,0,0, 90,110, 1, 0, 1),
 ]
