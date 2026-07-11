@@ -19,17 +19,17 @@ RARETE_ORDRE = ["Commun", "Rare", "Épique", "Légendaire"]
 RARETE_EMOJIS = {"Commun": "⚪", "Rare": "🔵", "Épique": "🟣", "Légendaire": "🟡"}
 RARETE_VENTE = {"Commun": 12, "Rare": 35, "Épique": 90, "Légendaire": 250}
 
-# Aucune garantie de rareté : chaque carte d'un paquet est tirée indépendamment
-# selon ces poids. Plus de cartes par paquet aux paliers hauts pour compenser
+# Aucune garantie de rareté : chaque carte d'un booster est tirée indépendamment
+# selon ces poids. Plus de cartes par booster aux paliers hauts pour compenser
 # l'absence de garantie, mais la malchance reste toujours possible.
-PAQUETS = {
-    "commun": {"nom": "Paquet Commun", "prix": 80, "cartes": 3,
+BOOSTERS = {
+    "commun": {"nom": "Booster Commun", "prix": 80, "cartes": 3,
                "poids": {"Commun": 70, "Rare": 25, "Épique": 5, "Légendaire": 0}},
-    "rare": {"nom": "Paquet Rare", "prix": 250, "cartes": 4,
+    "rare": {"nom": "Booster Rare", "prix": 250, "cartes": 4,
              "poids": {"Commun": 35, "Rare": 45, "Épique": 18, "Légendaire": 2}},
-    "epique": {"nom": "Paquet Épique", "prix": 700, "cartes": 5,
+    "epique": {"nom": "Booster Épique", "prix": 700, "cartes": 5,
                "poids": {"Commun": 15, "Rare": 35, "Épique": 42, "Légendaire": 8}},
-    "legendaire": {"nom": "Paquet Légendaire", "prix": 1000, "cartes": 6,
+    "legendaire": {"nom": "Booster Légendaire", "prix": 1000, "cartes": 6,
                    "poids": {"Commun": 5, "Rare": 20, "Épique": 45, "Légendaire": 30}},
 }
 
@@ -49,9 +49,9 @@ def get_card(code):
     return None
 
 
-def tirer_paquet(paquet_key):
+def tirer_booster(booster_key):
     """Tirage 100% indépendant, carte par carte, sans aucune garantie de rareté minimale."""
-    config = PAQUETS[paquet_key]
+    config = BOOSTERS[booster_key]
     toutes = get_all_cards()
     par_rarete = {r: [c for c in toutes if c["rarete"] == r] for r in RARETE_ORDRE}
 
