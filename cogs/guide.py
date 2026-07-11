@@ -8,8 +8,8 @@ def embed_accueil():
         description=(
             "Bienvenue à bord ! Ce carnet te guide à travers toutes les possibilités du monde.\n\n"
             "Utilise le menu déroulant ci-dessous pour explorer chaque section : ton personnage, "
-            "l'économie, l'aventure, les quêtes, les récompenses, les succès, le combat, les métiers, "
-            "les organisations, les mini-jeux...\n\n"
+            "l'économie, l'aventure, les quêtes, les récompenses, les succès, les pouvoirs, le combat, "
+            "les métiers, les organisations, les mini-jeux...\n\n"
             "🌊 Bon vent, moussaillon !"
         ),
         color=0x1B3A5C
@@ -54,7 +54,8 @@ def embed_aventure():
     embed = discord.Embed(
         title="🗺️ Aventure",
         description=(
-            "**`/explorer`** — Fouille les environs de ton île actuelle : Berrys, objets, trésors cachés, ou parfois rien du tout.\n\n"
+            "**`/explorer`** — Fouille les environs de ton île actuelle : Berrys, objets, trésors cachés, "
+            "voire (très rarement) un Fruit du Démon !\n\n"
             "**`/pecher` / `/chasser` / `/recolter`** — Récolte des ingrédients bruts (utiles pour les métiers !), "
             "accessible à toutes les factions.\n\n"
             "**`/debarquer`** — Change d'île au sein de ta mer actuelle, pour un coût minime en endurance "
@@ -127,6 +128,29 @@ def embed_succes():
     embed.set_footer(text="🌊 One Piece Bot • Guide du joueur")
     return embed
 
+def embed_pouvoirs():
+    embed = discord.Embed(
+        title="🍈 Fruits du Démon & Haki",
+        description=(
+            "**🍈 Fruits du Démon** — Tu ne peux en manger qu'un seul, et chaque fruit est **unique** sur le serveur.\n"
+            "• `/fruit voir` — voir ton fruit actuel et s'il est éveillé.\n"
+            "• `/fruit marche_noir` — voir les fruits encore disponibles (très chers, 5 000฿ à 40 000฿).\n"
+            "• `/fruit acheter` — en acheter et le manger immédiatement.\n"
+            "• Une infime chance de trouver un fruit gratuitement en explorant, influencée par ta **Chance cachée**.\n"
+            "• **L'Éveil** est totalement aléatoire — il peut se déclencher après n'importe quelle victoire en combat, "
+            "sans que tu puisses le provoquer. Une fois éveillé, les bonus de ton fruit sont largement renforcés.\n\n"
+            "**⚔️ Haki** — Trois types, tous cachés dans ton profil :\n"
+            "• `/haki voir` — consulter tes niveaux.\n"
+            "• `/haki entrainer` — t'entraîner en Armement (renforce l'attaque) ou Observation (renforce l'esquive). "
+            "Chance de progression à chaque session, pas de garantie !\n"
+            "• **Le Haki des Rois** est le plus rare de tous — comme l'éveil de fruit, il se déclenche spontanément "
+            "après une victoire, sans jamais pouvoir être entraîné directement."
+        ),
+        color=0x8E44AD
+    )
+    embed.set_footer(text="🌊 One Piece Bot • Guide du joueur")
+    return embed
+
 def embed_combat():
     embed = discord.Embed(
         title="⚔️ Combat",
@@ -136,7 +160,8 @@ def embed_combat():
             "c'est un vrai duel sportif !\n\n"
             "⚠️ **En cas de défaite en PvE** : tu perds un peu de Berrys liquides, ton équipement s'abîme "
             "(pense à un Forgeron !), et tu es K.O. quelques minutes (les actions pacifiques restent possibles).\n\n"
-            "Équipe de bonnes armes/armures via `/inventaire equiper` pour de meilleures stats en combat !"
+            "Équipe de bonnes armes/armures via `/inventaire equiper` pour de meilleures stats en combat — "
+            "et n'oublie pas que ton **Fruit du Démon** et ton **Haki** boostent aussi tes stats effectives !"
         ),
         color=0xC0392B
     )
@@ -196,7 +221,7 @@ def embed_minijeux():
         title="🎲 Mini-jeux",
         description=(
             "**Solo :** `/peche_au_gros`, `/bras_de_fer`, `/concours_nourriture`, "
-            "`/casino machine-a-sous|des|roulette|blackjack`\n\n"
+            "`/casino machine-a-sous|des|roulette|blackjack`, `/cartes booster|collection|vendre|echanger`\n\n"
             "**Multijoueurs :** `/regate` (course 2-4), `/chasse_tresor` (coopératif 2-4), "
             "`/raid_boss` (coopératif 2-4), `/tournoi` (bracket à 4), `/bras_de_fer_duel` (1v1)\n\n"
             "**Boss mondial :** apparition aléatoire et imprévisible sur une mer, ouvert à tous les "
@@ -230,6 +255,7 @@ SECTIONS = {
     "quetes": embed_quetes,
     "recompenses": embed_recompenses,
     "succes": embed_succes,
+    "pouvoirs": embed_pouvoirs,
     "combat": embed_combat,
     "metiers": embed_metiers,
     "organisations": embed_organisations,
@@ -248,6 +274,7 @@ class GuideSelect(discord.ui.Select):
             discord.SelectOption(label="Quêtes", value="quetes", emoji="📜"),
             discord.SelectOption(label="Récompenses", value="recompenses", emoji="🎁"),
             discord.SelectOption(label="Succès", value="succes", emoji="🏆"),
+            discord.SelectOption(label="Fruits & Haki", value="pouvoirs", emoji="🍈"),
             discord.SelectOption(label="Combat", value="combat", emoji="⚔️"),
             discord.SelectOption(label="Métiers", value="metiers", emoji="🔧"),
             discord.SelectOption(label="Organisations", value="organisations", emoji="🏴‍☠️"),
