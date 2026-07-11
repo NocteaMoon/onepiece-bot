@@ -4,34 +4,34 @@ from database.db import get_pool
 from utils.players import get_player
 from utils.channel_check import require_salon
 from utils.cartes import (
-    CATEGORIES, PAQUETS, RARETE_EMOJIS, RARETE_VENTE,
-    get_all_cards, get_card, tirer_paquet, add_card, remove_card, get_owned,
+    CATEGORIES, BOOSTERS, RARETE_EMOJIS, RARETE_VENTE,
+    get_all_cards, get_card, tirer_booster, add_card, remove_card, get_owned,
     get_collection_status, get_overview, check_completion_claimable, claim_completion,
     is_echange_ouvert,
 )
 
 cartes_group = app_commands.Group(name="cartes", description="Le jeu de cartes à collectionner")
 
-PAQUET_CHOICES = [app_commands.Choice(name=cfg["nom"], value=cle) for cle, cfg in PAQUETS.items()]
+BOOSTER_CHOICES = [app_commands.Choice(name=cfg["nom"], value=cle) for cle, cfg in BOOSTERS.items()]
 
 
-@cartes_group.command(name="ouvrir", description="Acheter et ouvrir un paquet de cartes")
-@app_commands.describe(paquet="Le type de paquet à ouvrir")
-@app_commands.choices(paquet=PAQUET_CHOICES)
+@cartes_group.command(name="booster", description="Acheter et ouvrir un booster de cartes")
+@app_commands.describe(booster="Le type de booster à ouvrir")
+@app_commands.choices(booster=BOOSTER_CHOICES)
 @require_salon("salon_cartes")
-async def cartes_ouvrir(interaction: discord.Interaction, paquet: app_commands.Choice[str]):
+async def cartes_booster(interaction: discord.Interaction, booster: app_commands.Choice[str]):
     await interaction.response.defer()
     player = await get_player(interaction.guild_id, interaction.user.id)
     if player is None:
         await interaction.followup.send("Tu n'as pas encore de personnage ! Lance `/commencer` pour débuter l'aventure 🏴‍☠️")
         return
 
-    config = PAQUETS[paquet.value]
+    config = BOOSTERS[booster.value]
     if player["berrys"] < config["prix"]:
         await interaction.followup.send(f"⛔ **{config['nom']}** coûte **{config['prix']:,}฿**, tu n'as que {player['berrys']:,}฿.")
         return
 
-    cartes_tirees = tirer_paquet(paquet.value)
+    cartes_tirees = tirer_booster(booster.value)
 
     pool = get_pool()
     async with pool.acquire() as conn:
