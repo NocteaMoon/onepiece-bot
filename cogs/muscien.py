@@ -183,3 +183,18 @@ async def musicien_composer(interaction: discord.Interaction, recette: str):
     await interaction.followup.send(embed=embed)
 
     if rang_monte:
+        await interaction.followup.send(embed=discord.Embed(
+            title="🎵 Rang de métier supérieur !",
+            description=f"Tu passes rang **{rang_label(nouveau_rang)}** en tant que Musicien !",
+            color=0x27AE60
+        ))
+    if niveaux_gagnes > 0:
+        await interaction.followup.send(embed=discord.Embed(
+            title="🎉 Niveau supérieur !",
+            description=f"{interaction.user.mention} passe **niveau {nouveau_niveau}** !",
+            color=0x27AE60
+        ))
+
+
+def setup_musicien_commands(bot):
+    bot.tree.add_command(musicien_group)
