@@ -8,6 +8,8 @@ from utils.combat_stats import get_effective_stats
 from utils.channel_check import require_salon
 from utils.announcements import announce_level_up
 from utils.quetes import increment_quest_progress
+from utils.fruits import check_eveil
+from utils.haki import check_eveil_rois
 from data.ennemis import ENNEMIS
 
 COUT_ENDURANCE = 20
@@ -100,6 +102,22 @@ class CombatView(discord.ui.View):
 
         if niveaux_gagnes > 0:
             await announce_level_up(interaction, interaction.user, nouveau_niveau)
+
+        eveil_fruit = await check_eveil(self.guild_id, self.user_id)
+        if eveil_fruit:
+            await interaction.followup.send(embed=discord.Embed(
+                title="✨ ÉVEIL !",
+                description=f"{interaction.user.mention} ressent un pouvoir immense monter en lui/elle... **Ton Fruit du Démon vient de s'éveiller !**",
+                color=0x8E44AD
+            ))
+
+        eveil_rois = await check_eveil_rois(self.guild_id, self.user_id)
+        if eveil_rois:
+            await interaction.followup.send(embed=discord.Embed(
+                title="👑 HAKI DES ROIS !",
+                description=f"Une aura écrasante émane soudain de {interaction.user.mention}... **Le Haki des Rois vient de s'éveiller en toi !**",
+                color=0xD4A017
+            ))
 
     async def appliquer_defaite(self):
         self.termine = True
