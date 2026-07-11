@@ -5,9 +5,33 @@ from data.quetes import OBJECTIFS
 from data.quetes_principales import QUETES_PRINCIPALES
 from data.quetes_secondaires import QUETES_SECONDAIRES
 from utils.titres import unlock_titre
+from utils.players import get_player
 
 CODES = list(OBJECTIFS.keys())
 MAX_SECONDAIRES_ACTIVES = 2
+
+
+# ===== FILTRAGE PAR ÉLIGIBILITÉ =====
+
+async def _codes_disponibles(guild_id: int, user_id: int):
+    player = await get_player(guild_id, user_id)
+    if player is None:
+        return [c for c in CODES if not OBJECTIFS[c].get("metier_requis") and not OBJECTIFS[c].get("faction_requise")]
+
+    disponibles = []
+    for code in CODES:
+        data = OBJECTIFS[code]
+        metier_requis = data.get("metier_requis")
+        if metier_requis and player["metier"] != metier_requis:
+            continue
+        faction_requise = data.get("faction_requise")
+        if faction_requise and player["faction"] != faction_requise:
+            continue
+        disponibles.append(code)
+
+    if not disponibles:
+        disponibles = [c for c in CODES if not OBJECTIFS[c].get("metier_requis") and not OBJECTIFS[c].get("faction_requise")]
+    return disponibles
 
 
 # ===== JOURNALIERES / HEBDOMADAIRES =====
@@ -15,6 +39,8 @@ MAX_SECONDAIRES_ACTIVES = 2
 async def ensure_quests(guild_id: int, user_id: int):
     pool = get_pool()
     now = datetime.datetime.utcnow()
+    codes_dispo = await _codes_disponibles(guild_id, user_id)
+
     async with pool.acquire() as conn:
         for periode, nb_slots, duree_heures in [("daily", 3, 24), ("weekly", 2, 168)]:
             rows = await conn.fetch(
@@ -29,7 +55,7 @@ async def ensure_quests(guild_id: int, user_id: int):
                 "DELETE FROM quest_progress WHERE guild_id=$1 AND user_id=$2 AND periode=$3",
                 guild_id, user_id, periode
             )
-            codes = random.sample(CODES, min(nb_slots, len(CODES)))
+            codes = random.sample(codes_dispo, min(nb_slots, len(codes_dispo)))
             expire_le = now + datetime.timedelta(hours=duree_heures)
             for slot, code in enumerate(codes):
                 data = OBJECTIFS[code]
