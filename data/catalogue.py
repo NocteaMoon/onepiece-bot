@@ -93,6 +93,11 @@ CATALOGUE = [
     ("Roseau à vent", "Un roseau sec parfait pour tailler un instrument à vent.", "Ingrédient", "Tous", "Aiguisé", 23, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
     ("Parchemin de mélodie", "Un parchemin rare porteur d'une mélodie oubliée.", "Ingrédient", "Tous", "Grade", 57, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
 
+    # ===== VESTIGES ANCIENS (Archéologue) =====
+    ("Fragment de poterie ancienne", "Un morceau de poterie brisée, vestige d'une civilisation oubliée.", "Ingrédient", "Tous", "Commun", 12, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Éclat de pierre gravée", "Un éclat de pierre portant d'étranges gravures.", "Ingrédient", "Tous", "Aiguisé", 27, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+    ("Médaillon oublié", "Un médaillon ancien, rare et intact malgré les âges.", "Ingrédient", "Tous", "Grade", 63, None, 0,0,0,0,0,0, 0,0, 1, -1, 1),
+
     # ===== PLATS (uniquement via /cuisiner, jamais achetables — stock à 0) =====
     ("Soupe de fortune", "Une soupe chaude et réconfortante, préparée avec le peu qu'on a.", "Plat", "Tous", "Commun", 40, None, 0,0,0,0,0,0, 40,0, 1, 0, 1),
     ("Riz sauté du marin", "Un plat roboratif qui redonne de l'énergie avant une longue traversée.", "Plat", "Tous", "Commun", 45, None, 0,0,0,0,0,0, 0,50, 1, 0, 1),
@@ -125,4 +130,9 @@ CATALOGUE = [
     ("Partition improvisée", "Une mélodie simple griffonnée sur le vif.", "Partition", "Tous", "Commun", 0, None, 0,0,0,0,0,0, 0,40, 1, 0, 1),
     ("Partition entraînante", "Un air entraînant qui redonne du cœur à l'ouvrage.", "Partition", "Tous", "Aiguisé", 0, None, 0,0,0,0,0,0, 30,50, 1, 0, 1),
     ("Symphonie de la mer", "Une œuvre rare composée par un Musicien chevronné.", "Partition", "Tous", "Grade", 0, None, 0,0,0,0,0,0, 90,110, 1, 0, 1),
+
+    # ===== RELIQUES DÉCHIFFRÉES (uniquement via /archeologue dechiffrer, jamais achetables) =====
+    ("Parchemin déchiffré", "Un vieux savoir enfin révélé après des heures d'étude.", "Relique", "Tous", "Commun", 0, None, 0,0,0,0,0,0, 0,45, 1, 0, 1),
+    ("Amulette ancienne restaurée", "Une amulette d'un autre âge, restaurée avec soin.", "Relique", "Tous", "Aiguisé", 0, None, 0,0,0,0,0,0, 40,50, 1, 0, 1),
+    ("Trésor des temps perdus", "Une relique rarissime, témoin d'une époque révolue.", "Relique", "Tous", "Grade", 0, None, 0,0,0,0,0,0, 100,120, 1, 0, 1),
 ]
