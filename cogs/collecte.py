@@ -8,13 +8,14 @@ POOL_PECHE = [("Poisson argenté", 40), ("Anguille des courants", 20), ("Poisson
 LIEUX_CHASSE = ["l'orée de la forêt", "les hautes herbes", "le flanc de la colline", "un sentier de gibier", "les broussailles denses", "une clairière isolée"]
 POOL_CHASSE = [("Viande de sanglier des mers", 55), ("Plume de faucon-tonnerre", 30), ("Peau de varan des dunes", 15), ("RIEN", 30)]
 
-LIEUX_RECOLTE = ["un bosquet fruitier", "une prairie sauvage", "le sous-bois humide", "les rochers moussus", "un jardin abandonné", "une pente ensoleillée", "une veine de minerai affleurante", "un carré d'herbes médicinales", "un rivage jonché de bois flotté"]
+LIEUX_RECOLTE = ["un bosquet fruitier", "une prairie sauvage", "le sous-bois humide", "les rochers moussus", "un jardin abandonné", "une pente ensoleillée", "une veine de minerai affleurante", "un carré d'herbes médicinales", "un rivage jonché de bois flotté", "les abords d'une taverne animée"]
 POOL_RECOLTE = [
-    ("Baies sucrées", 26), ("Racine noueuse", 24), ("Champignon des embruns", 13), ("Fleur de corail", 3),
-    ("Minerai de fer", 24), ("Minerai d'étain", 12), ("Pépite d'acier bleu", 3),
-    ("Herbe apaisante", 24), ("Feuille de saule marin", 12), ("Racine de vitalité", 3),
-    ("Planche de bois flotté", 24), ("Corde tressée", 12), ("Voile renforcée", 3),
-    ("RIEN", 22),
+    ("Baies sucrées", 23), ("Racine noueuse", 21), ("Champignon des embruns", 11), ("Fleur de corail", 3),
+    ("Minerai de fer", 21), ("Minerai d'étain", 10), ("Pépite d'acier bleu", 3),
+    ("Herbe apaisante", 21), ("Feuille de saule marin", 10), ("Racine de vitalité", 3),
+    ("Planche de bois flotté", 21), ("Corde tressée", 10), ("Voile renforcée", 3),
+    ("Corde de luth", 21), ("Roseau à vent", 10), ("Parchemin de mélodie", 3),
+    ("RIEN", 20),
 ]
 
 @app_commands.command(name="pecher", description="Pêcher pour obtenir des ingrédients marins")
