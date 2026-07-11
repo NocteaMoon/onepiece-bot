@@ -41,6 +41,7 @@ from cogs.medecin import setup_medecin_commands
 from cogs.navigateur import setup_navigateur_commands
 from cogs.charpentier import setup_charpentier_commands
 from cogs.musicien import setup_musicien_commands
+from cogs.archeologue import setup_archeologue_commands
 from cogs.guide import setup_guide_commands, GuideView
 from cogs.quetes import setup_quetes_commands
 from cogs.recompenses import setup_recompenses_commands
@@ -102,6 +103,7 @@ setup_medecin_commands(bot)
 setup_navigateur_commands(bot)
 setup_charpentier_commands(bot)
 setup_musicien_commands(bot)
+setup_archeologue_commands(bot)
 setup_guide_commands(bot)
 setup_quetes_commands(bot)
 setup_recompenses_commands(bot)
