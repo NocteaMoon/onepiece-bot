@@ -50,6 +50,7 @@ from cogs.boss_mondial import setup_boss_mondial_commands, start_boss_loop
 from cogs.succes import setup_succes_commands
 from cogs.classement import setup_classement_commands
 from cogs.titre import setup_titre_commands
+from cogs.cartes import setup_cartes_commands
 
 app = Flask('')
 
@@ -112,6 +113,7 @@ setup_boss_mondial_commands(bot)
 setup_succes_commands(bot)
 setup_classement_commands(bot)
 setup_titre_commands(bot)
+setup_cartes_commands(bot)
 
 @bot.event
 async def on_ready():
