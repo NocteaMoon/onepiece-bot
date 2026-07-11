@@ -89,11 +89,13 @@ async def config_voir(interaction: discord.Interaction):
         await interaction.response.send_message("Aucune configuration trouvee pour ce serveur.", ephemeral=True)
         return
 
-    embed = discord.Embed(title="Configuration du serveur", color=0x2C3E50)
-    embed.add_field(name="Langue", value=row["lang"], inline=False)
+    lignes = [f"**Langue** : {row['lang']}", ""]
     for label, value in SALON_DEFINITIONS:
         val = row[value]
-        embed.add_field(name=label, value=f"<#{val}>" if val else "Non defini", inline=True)
+        statut = f"<#{val}>" if val else "Non defini"
+        lignes.append(f"**{label}** : {statut}")
+
+    embed = discord.Embed(title="Configuration du serveur", description="\n".join(lignes), color=0x2C3E50)
     embed.set_footer(text="One Piece Bot - Configuration")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
