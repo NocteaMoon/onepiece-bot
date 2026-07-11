@@ -7,8 +7,13 @@ from utils.shop import get_random_loot
 from utils.channel_check import require_salon
 from utils.announcements import announce_level_up
 from utils.quetes import increment_quest_progress
+from utils.combat_stats import get_effective_stats
+from utils.fruits import get_fruits_disponibles, manger_fruit
 
 COUT_ENDURANCE = 15
+
+FRUIT_CHANCE_BASE = 0.003
+FRUIT_CHANCE_PAR_POINT = 0.0004
 
 LIEUX = [
     "la plage de galets", "la forêt tropicale", "les ruines abandonnées", "le vieux phare",
@@ -44,6 +49,41 @@ async def explorer(interaction: discord.Interaction):
             f"tu as {player['endurance']}). Ton endurance se régénère avec le temps, patiente un peu !"
         )
         return
+
+    # Chance ultra-rare de tomber sur un Fruit du Démon, influencée par la stat Chance cachée
+    if not player["fruit"]:
+        fruits_dispo = await get_fruits_disponibles(interaction.guild_id)
+        if fruits_dispo:
+            eff = await get_effective_stats(interaction.guild_id, interaction.user.id, player)
+            chance_fruit = FRUIT_CHANCE_BASE + eff["chance"] * FRUIT_CHANCE_PAR_POINT
+            if random.random() < chance_fruit:
+                fruit_tire = random.choice(fruits_dispo)
+                code, nom, categorie, description, bonus, prix, poids = fruit_tire
+                ok = await manger_fruit(interaction.guild_id, interaction.user.id, code)
+                if ok:
+                    pool = get_pool()
+                    async with pool.acquire() as conn:
+                        await conn.execute(
+                            "UPDATE players SET endurance = endurance - $3 WHERE guild_id=$1 AND user_id=$2",
+                            interaction.guild_id, interaction.user.id, COUT_ENDURANCE
+                        )
+                    niveaux_gagnes, nouveau_niveau = await add_xp(interaction.guild_id, interaction.user.id, 40, 20)
+                    await increment_quest_progress(interaction.guild_id, interaction.user.id, "explorer")
+
+                    embed = discord.Embed(
+                        title="🍈 DÉCOUVERTE INCROYABLE !",
+                        description=(
+                            f"En explorant, tu trouves un fruit à l'apparence étrange... N'écoutant que ta curiosité, "
+                            f"tu le manges sur-le-champ !\n\n**{nom}** ({categorie})\n{description}\n\n"
+                            f"Tu ne pourras plus jamais nager, mais ses pouvoirs sont désormais tiens !"
+                        ),
+                        color=0x8E44AD
+                    )
+                    embed.set_footer(text="🌊 One Piece Bot • Fruit du Démon")
+                    await interaction.followup.send(embed=embed)
+                    if niveaux_gagnes > 0:
+                        await announce_level_up(interaction, interaction.user, nouveau_niveau)
+                    return
 
     lieu = random.choice(LIEUX)
     outcome = random.choices(OUTCOMES, weights=[o[1] for o in OUTCOMES], k=1)[0]
