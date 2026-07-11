@@ -3,16 +3,31 @@ import datetime
 from database.db import get_pool
 from utils.titres import unlock_titre
 from data.cartes_monde import CARTES_MONDE
+from data.cartes_creatures import CARTES_CREATURES
+from data.cartes_tresors import CARTES_TRESORS
+from data.cartes_artisanat import CARTES_ARTISANAT
+from data.cartes_figures import CARTES_FIGURES
+from data.cartes_legendes import CARTES_LEGENDES
 
 # Pour ajouter une nouvelle catégorie plus tard : créer data/cartes_xxx.py,
 # l'importer ci-dessus, puis ajouter une ligne ici. Aucun autre code à toucher.
 CATEGORIES = {
     "monde": ("🗺️ Monde", CARTES_MONDE),
+    "creatures": ("👹 Créatures", CARTES_CREATURES),
+    "tresors": ("💎 Trésors légendaires", CARTES_TRESORS),
+    "artisanat": ("🔧 Artisanat", CARTES_ARTISANAT),
+    "figures": ("🏴‍☠️ Figures emblématiques", CARTES_FIGURES),
+    "legendes": ("📜 Légendes & Organisations", CARTES_LEGENDES),
 }
 
 # Récompense de complétion par catégorie : (berrys, titre_debloque)
 COMPLETION_REWARDS = {
     "monde": (1000, "Cartographe du Monde"),
+    "creatures": (1200, "Dompteur de Créatures"),
+    "tresors": (1500, "Chasseur de Trésors Légendaires"),
+    "artisanat": (1000, "Maître Collectionneur d'Artisanat"),
+    "figures": (1800, "Chroniqueur des Légendes Vivantes"),
+    "legendes": (2000, "Gardien des Récits Oubliés"),
 }
 
 RARETE_ORDRE = ["Commun", "Rare", "Épique", "Légendaire"]
