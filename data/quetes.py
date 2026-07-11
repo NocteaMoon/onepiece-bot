@@ -78,4 +78,18 @@ OBJECTIFS = {
         "berrys_per": 27, "xp_per": 10,
         "metier_requis": "Musicien",
     },
+    "etudier_ruines": {
+        "label": "Étudier des ruines {cible} fois",
+        "daily_min": 2, "daily_max": 3,
+        "weekly_min": 6, "weekly_max": 10,
+        "berrys_per": 18, "xp_per": 7,
+        "metier_requis": "Archéologue",
+    },
+    "dechiffrer_relique": {
+        "label": "Déchiffrer {cible} relique(s)",
+        "daily_min": 1, "daily_max": 2,
+        "weekly_min": 4, "weekly_max": 6,
+        "berrys_per": 27, "xp_per": 10,
+        "metier_requis": "Archéologue",
+    },
 }
