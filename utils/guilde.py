@@ -9,6 +9,7 @@ TITRES_PAR_METIER = {
     "Navigateur": {"Membre": "Mousse", "Compagnon": "Timonier(ère)", "Expert": "Navigateur Confirmé"},
     "Charpentier": {"Membre": "Apprenti Charpentier", "Compagnon": "Compagnon Charpentier", "Expert": "Charpentier Confirmé"},
     "Musicien": {"Membre": "Apprenti Ménestrel", "Compagnon": "Ménestrel", "Expert": "Musicien de Renom"},
+    "Archéologue": {"Membre": "Apprenti Archéologue", "Compagnon": "Archéologue", "Expert": "Archéologue Renommé"},
 }
 
 METIER_EMOJIS = {
@@ -18,6 +19,7 @@ METIER_EMOJIS = {
     "Navigateur": "🧭",
     "Charpentier": "🚢",
     "Musicien": "🎵",
+    "Archéologue": "🏺",
 }
 
 def rang_valeur(rang: str) -> int:
