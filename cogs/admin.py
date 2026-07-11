@@ -38,6 +38,7 @@ SALON_DEFINITIONS = [
     ("Carnet de bord (guide)", "salon_carnet"),
     ("Recompenses (daily/weekly/monthly)", "salon_recompenses"),
     ("Cartes a collectionner", "salon_cartes"),
+    ("Entrainement (Haki)", "salon_entrainement"),
 ]
 
 async def salon_type_autocomplete(interaction: discord.Interaction, current: str):
