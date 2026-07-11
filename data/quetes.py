@@ -64,4 +64,18 @@ OBJECTIFS = {
         "berrys_per": 35, "xp_per": 14,
         "metier_requis": "Charpentier",
     },
+    "jouer_musique": {
+        "label": "Jouer {cible} morceau(x)",
+        "daily_min": 2, "daily_max": 3,
+        "weekly_min": 6, "weekly_max": 10,
+        "berrys_per": 18, "xp_per": 7,
+        "metier_requis": "Musicien",
+    },
+    "composer_partition": {
+        "label": "Composer {cible} partition(s)",
+        "daily_min": 1, "daily_max": 2,
+        "weekly_min": 4, "weekly_max": 6,
+        "berrys_per": 27, "xp_per": 10,
+        "metier_requis": "Musicien",
+    },
 }
