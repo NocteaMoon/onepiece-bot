@@ -38,7 +38,7 @@ async def fruit_voir(interaction: discord.Interaction, membre: discord.Member = 
 
 
 @fruit_group.command(name="marche_noir", description="Voir les Fruits du Démon disponibles à l'achat (très coûteux)")
-@require_salon("salon_taverne")
+@require_salon("salon_boutique")
 async def fruit_marche_noir(interaction: discord.Interaction):
     await interaction.response.defer()
     player = await get_player(interaction.guild_id, interaction.user.id)
@@ -71,7 +71,7 @@ async def fruit_achat_autocomplete(interaction: discord.Interaction, current: st
 @fruit_group.command(name="acheter", description="Acheter et manger un Fruit du Démon au marché noir (très cher)")
 @app_commands.describe(fruit="Le fruit à acheter")
 @app_commands.autocomplete(fruit=fruit_achat_autocomplete)
-@require_salon("salon_taverne")
+@require_salon("salon_boutique")
 async def fruit_acheter(interaction: discord.Interaction, fruit: str):
     await interaction.response.defer()
     player = await get_player(interaction.guild_id, interaction.user.id)
