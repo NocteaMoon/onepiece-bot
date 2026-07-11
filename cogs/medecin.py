@@ -6,6 +6,7 @@ from utils.players import get_player, add_xp
 from utils.metiers import get_rang, rang_label
 from utils.shop import get_item_by_name
 from utils.channel_check import require_salon
+from utils.quetes import increment_quest_progress
 from data.recettes_medecin import RECETTES_MEDECIN
 
 medecin_group = app_commands.Group(name="medecin", description="Actions du métier de Médecin")
@@ -63,6 +64,7 @@ async def medecin_soigner(interaction: discord.Interaction, membre: discord.Memb
 
     _last_soin[key] = now
     await add_xp(interaction.guild_id, interaction.user.id, 8, 4)
+    await increment_quest_progress(interaction.guild_id, interaction.user.id, "soigner_joueur")
 
     embed = discord.Embed(
         title="💊 Soins prodigués !",
