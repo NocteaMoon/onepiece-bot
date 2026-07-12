@@ -142,6 +142,12 @@ async def profil(interaction: discord.Interaction, membre: discord.Member = None
         inline=True
     )
 
+    embed.add_field(
+        name="🌟 Renommée",
+        value=f"Notoriété : {player['notoriete']:,} pts\n{ESPACE}",
+        inline=True
+    )
+
     embed.set_footer(text=f"🌊 One Piece Bot • Aventurier depuis le {player['cree_le'].strftime('%d/%m/%Y')}")
     await interaction.followup.send(embed=embed)
 
