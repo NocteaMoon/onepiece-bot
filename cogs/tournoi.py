@@ -7,6 +7,7 @@ from utils.players import get_player, add_xp
 from utils.combat_stats import get_effective_stats
 from utils.channel_check import require_salon
 from utils.announcements import announce_level_up
+from utils.notoriete import add_notoriete, MONTANT_TOURNOI
 
 DUREE_INSCRIPTION = 45
 
@@ -233,6 +234,7 @@ async def tournoi(interaction: discord.Interaction):
             "UPDATE players SET berrys = berrys + $3, prime = prime + $4, nb_tournois_gagnes = nb_tournois_gagnes + 1 WHERE guild_id=$1 AND user_id=$2",
             interaction.guild_id, champion["id"], recompense, 60
         )
+    await add_notoriete(interaction.guild_id, champion["id"], MONTANT_TOURNOI)
     niveaux, niveau = await add_xp(interaction.guild_id, champion["id"], 100, 40)
 
     for p in [p1, p2, p3, p4]:
