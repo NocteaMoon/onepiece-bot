@@ -7,6 +7,7 @@ from utils.players import get_player, add_xp
 from utils.combat_stats import get_effective_stats
 from utils.channel_check import require_salon
 from utils.announcements import announce_level_up
+from utils.notoriete import add_notoriete, MONTANT_BOSS_MONDIAL
 from data.ennemis import ENNEMIS
 from data.mers import MERS
 
@@ -93,6 +94,7 @@ class WorldBossCombatView(discord.ui.View):
                     "UPDATE players SET berrys = berrys + $3, prime = prime + $4, nb_boss_vaincus = nb_boss_vaincus + 1 WHERE guild_id=$1 AND user_id=$2",
                     self.guild_id, r["user_id"], berrys, prime_flat
                 )
+            await add_notoriete(self.guild_id, r["user_id"], MONTANT_BOSS_MONDIAL)
             niveaux, niveau = await add_xp(self.guild_id, r["user_id"], xp, xp // 2)
             member = interaction.guild.get_member(r["user_id"])
             tag_mvp = " 👑" if mvp and r["user_id"] == mvp["user_id"] else ""
