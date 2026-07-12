@@ -81,6 +81,16 @@ class DuelCombatView(discord.ui.View):
         recap = f"🏆 **{gagnant['name']}** remporte le duel !"
         if transfert:
             recap += f" (+{transfert:,}฿)"
+
+        # Prime dynamique : la Marine réduit la prime des autres factions qu'elle bat en duel
+        if gagnant.get("faction") == "Marine" and perdant.get("faction") != "Marine":
+            async with pool.acquire() as conn:
+                perdant_prime_row = await conn.fetchrow("SELECT prime FROM players WHERE guild_id=$1 AND user_id=$2", self.guild_id, perdant_id)
+                reduction = round(perdant_prime_row["prime"] * 0.20)
+                if reduction > 0:
+                    await conn.execute("UPDATE players SET prime = GREATEST(0, prime - $3) WHERE guild_id=$1 AND user_id=$2", self.guild_id, perdant_id, reduction)
+                    recap += f"\n⚓ La Marine réduit la prime de **{perdant['name']}** de **{reduction:,}฿** !"
+
         self.log.append(message)
         self.log.append(recap)
 
@@ -89,9 +99,13 @@ class DuelCombatView(discord.ui.View):
         await self.message.edit(embed=embed, view=self)
 
         if niveaux_g > 0:
-            await announce_level_up(interaction, gagnant["member"], niveau_g)
+            gagnant_member = interaction.guild.get_member(gagnant_id)
+            if gagnant_member:
+                await announce_level_up(interaction, gagnant_member, niveau_g)
         if niveaux_p > 0:
-            await announce_level_up(interaction, perdant["member"], niveau_p)
+            perdant_member = interaction.guild.get_member(perdant_id)
+            if perdant_member:
+                await announce_level_up(interaction, perdant_member, niveau_p)
 
     @discord.ui.button(label="Attaque", emoji="⚔️", style=discord.ButtonStyle.danger)
     async def attaque(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -154,17 +168,17 @@ class DuelCombatView(discord.ui.View):
 
 
 class DuelChallengeView(discord.ui.View):
-    def __init__(self, guild_id, challenger: discord.Member, target: discord.Member, mise):
+    def __init__(self, guild_id, challenger_id, target_id, mise):
         super().__init__(timeout=60)
         self.guild_id = guild_id
-        self.challenger = challenger
-        self.target = target
+        self.challenger_id = challenger_id
+        self.target_id = target_id
         self.mise = mise
         self.repondu = False
         self.message = None
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user.id != self.target.id:
+        if interaction.user.id != self.target_id:
             await interaction.response.send_message("⛔ Ce défi ne t'est pas adressé !", ephemeral=True)
             return False
         return True
@@ -177,8 +191,8 @@ class DuelChallengeView(discord.ui.View):
         for c in self.children:
             c.disabled = True
 
-        p1_data = await get_player(self.guild_id, self.challenger.id)
-        p2_data = await get_player(self.guild_id, self.target.id)
+        p1_data = await get_player(self.guild_id, self.challenger_id)
+        p2_data = await get_player(self.guild_id, self.target_id)
 
         if self.mise:
             if p1_data["berrys"] < self.mise:
@@ -188,13 +202,18 @@ class DuelChallengeView(discord.ui.View):
                 await interaction.response.edit_message(content="⛔ Tu n'as pas assez de Berrys pour cette mise, le duel est annulé.", embed=None, view=None)
                 return
 
-        eff1 = await get_effective_stats(self.guild_id, self.challenger.id, p1_data)
-        eff2 = await get_effective_stats(self.guild_id, self.target.id, p2_data)
+        eff1 = await get_effective_stats(self.guild_id, self.challenger_id, p1_data)
+        eff2 = await get_effective_stats(self.guild_id, self.target_id, p2_data)
 
-        p1 = {"id": self.challenger.id, "name": self.challenger.display_name, "member": self.challenger,
+        challenger_member = interaction.guild.get_member(self.challenger_id)
+        target_member = interaction.guild.get_member(self.target_id)
+
+        p1 = {"id": self.challenger_id, "name": challenger_member.display_name if challenger_member else "Joueur 1",
+              "faction": p1_data["faction"],
               "pv": p1_data["pv_max"] + eff1["bonus_pv_combat"], "pv_max": p1_data["pv_max"] + eff1["bonus_pv_combat"],
               "defense_active": False}
-        p2 = {"id": self.target.id, "name": self.target.display_name, "member": self.target,
+        p2 = {"id": self.target_id, "name": target_member.display_name if target_member else "Joueur 2",
+              "faction": p2_data["faction"],
               "pv": p2_data["pv_max"] + eff2["bonus_pv_combat"], "pv_max": p2_data["pv_max"] + eff2["bonus_pv_combat"],
               "defense_active": False}
 
@@ -259,7 +278,7 @@ async def duel(interaction: discord.Interaction, adversaire: discord.Member, mis
         color=0x8E44AD
     )
     embed.set_footer(text="🌊 One Piece Bot • Duel • 60 secondes pour répondre")
-    view = DuelChallengeView(interaction.guild_id, interaction.user, adversaire, mise)
+    view = DuelChallengeView(interaction.guild_id, interaction.user.id, adversaire.id, mise)
     msg = await interaction.followup.send(embed=embed, view=view)
     view.message = msg
 
