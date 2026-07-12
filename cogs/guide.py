@@ -23,7 +23,8 @@ def embed_profil():
         description=(
             "**`/commencer`** — Crée ton personnage et choisis ta faction : Pirate, Marine, "
             "Révolutionnaire ou Civil. Chacune a sa propre voie de jeu, alors réfléchis bien !\n\n"
-            "**`/profil`** — Ta fiche complète : niveau, Berrys, prime, stats de combat, position, équipage...\n\n"
+            "**`/profil`** — Ta fiche complète : niveau, Berrys, prime, stats de combat, position, équipage, "
+            "et ta **Notoriété** (renommée gagnée via les gros exploits : boss mondiaux, tournois, succès).\n\n"
             "**`/titre choisir`** — Équipe le titre de ton choix parmi ceux que tu as débloqués (au fil des "
             "quêtes principales notamment). **`/titre voir`** liste tous tes titres gagnés.\n\n"
             "💭 On raconte qu'une force cachée grandirait en secret chez les aventuriers les plus déterminés, "
@@ -123,7 +124,7 @@ def embed_succes():
             "atteindre, les derniers demandent un vrai investissement. De nouveaux paliers peuvent être "
             "ajoutés à tout moment, la liste ne s'arrête jamais vraiment !\n\n"
             "Un succès accompli affiche 🎉 avec un bouton pour le réclamer — comme pour les quêtes, "
-            "la récompense n'est jamais automatique."
+            "la récompense n'est jamais automatique. Chaque succès réclamé augmente aussi légèrement ta **Notoriété**."
         ),
         color=0xD4A017
     )
@@ -162,7 +163,7 @@ def embed_combat():
         description=(
             "**`/combattre`** — Affronte un ennemi de ta mer actuelle. Boutons Attaque/Défense/Objet/Fuite.\n\n"
             "**`/duel`** — Défie un autre joueur (mise optionnelle). Sans risque réel pour tes vraies stats, "
-            "c'est un vrai duel sportif !\n\n"
+            "c'est un vrai duel sportif ! ⚓ Attention : si un **Marine** te bat en duel, il réduit ta prime de 20%.\n\n"
             "⚠️ **En cas de défaite en PvE** : tu perds un peu de Berrys liquides, ton équipement s'abîme "
             "(pense à un Forgeron !), et tu es K.O. quelques minutes (les actions pacifiques restent possibles).\n\n"
             "Équipe de bonnes armes/armures via `/inventaire equiper` pour de meilleures stats en combat — "
@@ -229,9 +230,11 @@ def embed_minijeux():
             "**Solo :** `/peche_au_gros`, `/bras_de_fer`, `/concours_nourriture`, "
             "`/casino machine-a-sous|des|roulette|blackjack`, `/cartes booster|collection|vendre|echanger`\n\n"
             "**Multijoueurs :** `/regate` (course 2-4), `/chasse_tresor` (coopératif 2-4), "
-            "`/raid_boss` (coopératif 2-4), `/tournoi` (bracket à 4), `/bras_de_fer_duel` (1v1)\n\n"
+            "`/raid_boss` (coopératif 2-4), `/tournoi` (bracket à 4, +8 Notoriété au champion), "
+            "`/bras_de_fer_duel` (1v1)\n\n"
             "**Boss mondial :** apparition aléatoire et imprévisible sur une mer, ouvert à tous les "
-            "joueurs présents. `/boss_mondial statut` pour vérifier si un combat est en cours.\n\n"
+            "joueurs présents (+3 Notoriété par participant à la victoire). `/boss_mondial statut` pour "
+            "vérifier si un combat est en cours.\n\n"
             "La plupart fonctionnent avec de vrais boutons interactifs — tente ta chance !"
         ),
         color=0xE67E22
@@ -245,7 +248,8 @@ def embed_prime():
         description=(
             "**`/prime_tete`** — Ton avis de recherche officiel : prime, navire, équipage, faction. "
             "Regarde aussi celui d'un ami avec `/prime_tete membre:@quelqu'un` !\n\n"
-            "Ta prime augmente en gagnant des combats et certains mini-jeux."
+            "Ta prime augmente en gagnant des combats et certains mini-jeux. Attention : elle peut aussi "
+            "**baisser** — un Marine qui te bat en duel réduit ta prime de 20% !"
         ),
         color=0x1A1A1A
     )
