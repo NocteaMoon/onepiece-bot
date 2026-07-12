@@ -61,6 +61,24 @@ async def embed_niveau(guild_id, guild):
     return embed
 
 
+async def embed_notoriete(guild_id, guild):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT user_id, notoriete FROM players WHERE guild_id=$1 ORDER BY notoriete DESC LIMIT 10",
+            guild_id
+        )
+    embed = discord.Embed(title="🌟 Classement — Notoriété", color=0xF39C12)
+    lignes = []
+    for i, r in enumerate(rows):
+        member = guild.get_member(r["user_id"])
+        nom = member.display_name if member else f"Joueur {r['user_id']}"
+        lignes.append(f"**{i+1}.** {nom} — {r['notoriete']:,} pts")
+    embed.description = "\n".join(lignes) if lignes else "Aucune donnée pour l'instant."
+    embed.set_footer(text="🌊 One Piece Bot • Classements")
+    return embed
+
+
 async def embed_organisations(guild_id, guild):
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -89,6 +107,7 @@ CATEGORIES = {
     "richesse": embed_richesse,
     "prime": embed_prime,
     "niveau": embed_niveau,
+    "notoriete": embed_notoriete,
     "organisations": embed_organisations,
 }
 
@@ -99,6 +118,7 @@ class ClassementSelect(discord.ui.Select):
             discord.SelectOption(label="Richesse", value="richesse", emoji="💰"),
             discord.SelectOption(label="Prime", value="prime", emoji="☠️"),
             discord.SelectOption(label="Niveau", value="niveau", emoji="📈"),
+            discord.SelectOption(label="Notoriété", value="notoriete", emoji="🌟"),
             discord.SelectOption(label="Organisations", value="organisations", emoji="🏴‍☠️"),
         ]
         super().__init__(placeholder="Choisis un classement...", options=options, custom_id="classement_select")
