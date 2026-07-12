@@ -1,5 +1,6 @@
 from database.db import get_pool
 from data.succes import FAMILLES
+from utils.notoriete import add_notoriete, MONTANT_SUCCES
 
 GRADES_CHEFS = ("Capitaine", "Amiral", "Meneur", "Maitre")
 
@@ -121,4 +122,5 @@ async def claim_succes(guild_id, user_id, player, code):
                 "UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2",
                 guild_id, user_id, berrys
             )
+    await add_notoriete(guild_id, user_id, MONTANT_SUCCES)
     return titre, berrys
