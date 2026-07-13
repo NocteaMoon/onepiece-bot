@@ -25,6 +25,7 @@ def embed_profil():
             "Révolutionnaire ou Civil. Chacune a sa propre voie de jeu, alors réfléchis bien !\n\n"
             "**`/profil`** — Ta fiche complète : niveau, Berrys, prime, stats de combat, position, équipage, "
             "et ta **Notoriété** (renommée gagnée via les gros exploits : boss mondiaux, tournois, succès).\n\n"
+            "**`/reputation`** — Ta réputation détaillée par faction, ton respect d'équipage, ta notoriété.\n\n"
             "**`/titre choisir`** — Équipe le titre de ton choix parmi ceux que tu as débloqués (au fil des "
             "quêtes principales notamment). **`/titre voir`** liste tous tes titres gagnés.\n\n"
             "💭 On raconte qu'une force cachée grandirait en secret chez les aventuriers les plus déterminés, "
@@ -44,7 +45,8 @@ def embed_economie():
             "**`/economie travailler`** — Un petit boulot pour gagner des Berrys (cooldown 30 min).\n\n"
             "**`/economie banque depot|retrait|solde`** — Mets tes Berrys à l'abri ! En cas de défaite, "
             "seul ton argent **liquide** est menacé, pas ta banque.\n\n"
-            "**`/marche voir|infos|acheter`** — Le marché aux trésors, filtré selon ta faction.\n\n"
+            "**`/marche voir|infos|acheter`** — Le marché aux trésors, filtré selon ta faction. Ta réputation "
+            "peut te faire économiser jusqu'à 20% sur tes achats !\n\n"
             "**`/inventaire voir|equiper|desequiper|utiliser|jeter`** — Gère tes objets et ton équipement.\n\n"
             "**`/economie donner`** — Envoie des Berrys à un autre joueur."
         ),
@@ -58,7 +60,7 @@ def embed_aventure():
         title="🗺️ Aventure",
         description=(
             "**`/explorer`** — Fouille les environs de ton île actuelle : Berrys, objets, trésors cachés, "
-            "voire (très rarement) un Fruit du Démon !\n\n"
+            "voire (très rarement) un Fruit du Démon ! Les rencontres avec des PNJ réagissent à ta Notoriété.\n\n"
             "**`/pecher` / `/chasser` / `/recolter`** — Récolte des ingrédients bruts (utiles pour les métiers !), "
             "accessible à toutes les factions.\n\n"
             "**`/debarquer`** — Change d'île au sein de ta mer actuelle, pour un coût minime en endurance "
@@ -66,7 +68,9 @@ def embed_aventure():
             "**`/carte`** — Affiche ton île actuelle avec sa description, et les autres îles accessibles.\n\n"
             "**`/voyager`** — Change de mer. Chaque mer demande un niveau minimum, et le trajet réserve "
             "son lot de surprises (calme, tempête, découverte...) — un mauvais événement peut abîmer ton "
-            "arme, ton armure ET ton navire équipés !\n\n"
+            "arme, ton armure ET ton navire équipés ! Plus tu voyages, moins les risques sont élevés "
+            "(navigation progressive, jusqu'à -50% de risque).\n\n"
+            "**`/meteo`** — Consulte la météo actuelle du serveur, elle influence légèrement l'exploration et les voyages.\n\n"
             "Toutes ces actions coûtent de l'**endurance**, qui se régénère automatiquement avec le temps."
         ),
         color=0x1B3A5C
@@ -161,14 +165,15 @@ def embed_combat():
     embed = discord.Embed(
         title="⚔️ Combat",
         description=(
-            "**`/combattre`** — Affronte un ennemi de ta mer actuelle. Boutons Attaque/Défense/Objet/Fuite.\n\n"
-            "**`/duel`** — Défie un autre joueur (mise optionnelle). Sans risque réel pour tes vraies stats, "
-            "c'est un vrai duel sportif ! ⚓ Attention : si un **Marine** te bat en duel, il réduit ta prime de 20%.\n\n"
+            "**`/combattre`** — Affronte un ennemi de ta mer actuelle. Boutons Attaque/Défense/Objet/Fuite. "
+            "Chaque victoire augmente légèrement ta réputation dans ta propre faction.\n\n"
+            "**`/duel`** — Défie un autre joueur (mise optionnelle). ⚓ Un Marine qui gagne réduit la prime "
+            "de son adversaire d'une autre faction de 20% !\n\n"
             "⚠️ **En cas de défaite en PvE** : tu perds un peu de Berrys liquides, ton équipement s'abîme "
             "(pense à un Forgeron !), et tu es K.O. quelques minutes (les actions pacifiques restent possibles).\n\n"
             "Équipe de bonnes armes/armures via `/inventaire equiper` pour de meilleures stats en combat — "
-            "et n'oublie pas que ton **Fruit du Démon**, ton **Haki** et ta **maîtrise d'arme** boostent "
-            "aussi tes stats effectives !"
+            "et n'oublie pas que ton **Fruit du Démon**, ton **Haki**, ta **maîtrise d'arme** et ton "
+            "**Respect d'équipage** boostent aussi tes stats effectives !"
         ),
         color=0xC0392B
     )
@@ -216,7 +221,9 @@ def embed_organisations():
             "**🔥 Révolutionnaire** → `/revolution` (Recrue→Agent→Commandant→Meneur)\n"
             "**🧵 Civil** → `/guilde` (Membre→Compagnon→Expert→Maître de Guilde)\n\n"
             "Sous-commandes communes : `creer`, `inviter`, `expulser`, `quitter`, `promouvoir`, "
-            "`coffre depot|retrait|solde`, `info`, `liste`, et bien sûr un emblème personnalisable !"
+            "`coffre depot|retrait|solde`, `info`, `liste`, et bien sûr un emblème personnalisable !\n\n"
+            "💰 Déposer dans le coffre commun augmente aussi ton **Respect d'équipage**, qui donne un vrai "
+            "bonus de défense en combat une fois un certain seuil atteint."
         ),
         color=0x8E44AD
     )
@@ -248,6 +255,7 @@ def embed_prime():
         description=(
             "**`/prime_tete`** — Ton avis de recherche officiel : prime, navire, équipage, faction. "
             "Regarde aussi celui d'un ami avec `/prime_tete membre:@quelqu'un` !\n\n"
+            "**`/reputation`** — Vue d'ensemble de ta réputation par faction, ta notoriété et ton respect d'équipage.\n\n"
             "Ta prime augmente en gagnant des combats et certains mini-jeux. Attention : elle peut aussi "
             "**baisser** — un Marine qui te bat en duel réduit ta prime de 20% !"
         ),
