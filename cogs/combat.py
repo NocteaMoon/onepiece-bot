@@ -12,6 +12,7 @@ from utils.fruits import check_eveil
 from utils.haki import check_eveil_rois
 from utils.maitrise import progresser_maitrise, LABELS as MAITRISE_LABELS
 from utils.xp_cache import check_xp_cache_paliers, STAT_LABELS
+from utils.reputation import add_reputation_faction, MONTANT_COMBAT_VICTOIRE
 from data.ennemis import ENNEMIS
 
 COUT_ENDURANCE = 20
@@ -44,10 +45,11 @@ class ItemSelectView(discord.ui.View):
 
 
 class CombatView(discord.ui.View):
-    def __init__(self, guild_id, user_id, enemy, player_pv_depart, true_pv_max, effective_stats):
+    def __init__(self, guild_id, user_id, faction, enemy, player_pv_depart, true_pv_max, effective_stats):
         super().__init__(timeout=90)
         self.guild_id = guild_id
         self.user_id = user_id
+        self.faction = faction
         self.enemy = dict(enemy)
         self.player_pv = player_pv_depart
         self.player_pv_max = player_pv_depart
@@ -96,6 +98,7 @@ class CombatView(discord.ui.View):
             )
         niveaux_gagnes, nouveau_niveau = await add_xp(self.guild_id, self.user_id, self.enemy["xp"], self.enemy["xpc"])
         await increment_quest_progress(self.guild_id, self.user_id, "combattre_victoire")
+        await add_reputation_faction(self.guild_id, self.user_id, self.faction, MONTANT_COMBAT_VICTOIRE)
 
         self.log.append(f"🏆 Victoire ! Tu gagnes **{berrys_gain}฿**, **{self.enemy['prime_gain']}฿ de prime**, et de l'XP !")
         embed = self.build_embed()
@@ -333,7 +336,7 @@ async def combattre(interaction: discord.Interaction):
     eff = await get_effective_stats(interaction.guild_id, interaction.user.id, player)
     player_pv_combat = player["pv"] + eff["bonus_pv_combat"]
 
-    view = CombatView(interaction.guild_id, interaction.user.id, enemy, player_pv_combat, player["pv_max"], eff)
+    view = CombatView(interaction.guild_id, interaction.user.id, player["faction"], enemy, player_pv_combat, player["pv_max"], eff)
     intro = f"👑 **{enemy['nom'].capitalize()}** légendaire se dresse devant toi !" if enemy.get("boss") else f"**{enemy['nom'].capitalize()}** te barre la route !"
     embed = view.build_embed()
     embed.description = intro
