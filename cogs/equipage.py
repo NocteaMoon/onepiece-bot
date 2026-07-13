@@ -3,6 +3,7 @@ from discord import app_commands
 from database.db import get_pool
 from utils.players import get_player
 from utils.channel_check import require_salon
+from utils.respect import add_respect
 from utils.equipages import (
     RANGS_ORDRE, RANG_EMOJIS, MAX_MEMBRES, COUT_CREATION,
     rang_valeur, get_crew_by_id, get_crew_by_nom, get_membres, count_membres, prime_cumulee
@@ -42,7 +43,7 @@ async def equipage_creer(interaction: discord.Interaction, nom: str):
         return
     existant = await get_crew_by_nom(interaction.guild_id, nom)
     if existant:
-        await interaction.followup.send("⛔ Ce nom est déjà pris sur ce serveur.")
+        await interaction.followup.send("⛔ Ce nom d'équipage est déjà pris sur ce serveur.")
         return
 
     pool = get_pool()
@@ -221,7 +222,7 @@ async def equipage_quitter(interaction: discord.Interaction):
         await interaction.followup.send("⛔ Tu ne fais partie d'aucun équipage.")
         return
     if player["grade_equipage"] == "Capitaine":
-        await interaction.followup.send("⛔ Le Capitaine ne peut pas quitter directement. Transfère le capitanat ou dissous l'équipage.")
+        await interaction.followup.send("⛔ Le Capitaine ne peut pas quitter directement. Transfère le capitanat avec `/equipage transferer_capitainat`, ou dissous l'équipage avec `/equipage dissoudre`.")
         return
 
     pool = get_pool()
@@ -286,8 +287,14 @@ async def equipage_transferer(interaction: discord.Interaction, nouveau_capitain
     async with pool.acquire() as conn:
         async with conn.transaction():
             await conn.execute("UPDATE crews SET capitaine_id = $2 WHERE id = $1", crew["id"], nouveau_capitaine.id)
-            await conn.execute("UPDATE players SET grade_equipage = 'Second' WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, interaction.user.id)
-            await conn.execute("UPDATE players SET grade_equipage = 'Capitaine' WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, nouveau_capitaine.id)
+            await conn.execute(
+                "UPDATE players SET grade_equipage = 'Second' WHERE guild_id=$1 AND user_id=$2",
+                interaction.guild_id, interaction.user.id
+            )
+            await conn.execute(
+                "UPDATE players SET grade_equipage = 'Capitaine' WHERE guild_id=$1 AND user_id=$2",
+                interaction.guild_id, nouveau_capitaine.id
+            )
     await interaction.followup.send(f"🏴‍☠️ {nouveau_capitaine.mention} est le nouveau Capitaine de **{crew['nom']}** !")
 
 
@@ -302,7 +309,7 @@ async def equipage_dissoudre(interaction: discord.Interaction):
 
     view = DissolutionConfirmView(interaction.guild_id, crew["id"], crew["nom"], interaction.user.id)
     await interaction.followup.send(
-        embed=discord.Embed(title="⚠️ Confirmation requise", description=f"Es-tu sûr de vouloir dissoudre **{crew['nom']}** ?", color=0xC0392B),
+        embed=discord.Embed(title="⚠️ Confirmation requise", description=f"Es-tu sûr de vouloir dissoudre **{crew['nom']}** ? Cette action est irréversible.", color=0xC0392B),
         view=view
     )
 
@@ -326,7 +333,10 @@ class DissolutionConfirmView(discord.ui.View):
         pool = get_pool()
         async with pool.acquire() as conn:
             async with conn.transaction():
-                await conn.execute("UPDATE players SET equipage_id = NULL, grade_equipage = NULL WHERE guild_id=$1 AND equipage_id=$2", self.guild_id, self.crew_id)
+                await conn.execute(
+                    "UPDATE players SET equipage_id = NULL, grade_equipage = NULL WHERE guild_id=$1 AND equipage_id=$2",
+                    self.guild_id, self.crew_id
+                )
                 await conn.execute("DELETE FROM crews WHERE id = $1", self.crew_id)
         for c in self.children:
             c.disabled = True
@@ -362,7 +372,7 @@ async def equipage_renommer(interaction: discord.Interaction, nouveau_nom: str):
     await interaction.followup.send(f"✅ L'équipage s'appelle maintenant **{nouveau_nom}** !")
 
 
-@equipage_group.command(name="drapeau", description="Définir le drapeau de ton équipage (réservé au Capitaine)")
+@equipage_group.command(name="drapeau", description="Définir le drapeau (image) de ton équipage (réservé au Capitaine)")
 @app_commands.describe(image="L'image du drapeau")
 @require_salon("salon_equipages")
 async def equipage_drapeau(interaction: discord.Interaction, image: discord.Attachment):
@@ -403,6 +413,7 @@ async def coffre_depot(interaction: discord.Interaction, montant: int):
         async with conn.transaction():
             await conn.execute("UPDATE players SET berrys = berrys - $3 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, interaction.user.id, montant)
             await conn.execute("UPDATE crews SET coffre_berrys = coffre_berrys + $2 WHERE id = $1", crew["id"], montant)
+    await add_respect(interaction.guild_id, interaction.user.id, montant)
     await interaction.followup.send(f"🏦 **{montant:,}฿** déposés dans le coffre de **{crew['nom']}**.")
 
 
