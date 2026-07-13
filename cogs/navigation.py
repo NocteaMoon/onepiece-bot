@@ -7,9 +7,14 @@ from utils.channel_check import require_salon
 from utils.announcements import announce_level_up
 from utils.quetes import increment_quest_progress
 from utils.succes import record_mer_visitee
+from utils.meteo import get_current_weather, get_modifiers
 from data.mers import MERS
 
 MER_CHOICES = [app_commands.Choice(name=f"{nom} (niv. {niv}+)", value=nom) for nom, niv, _, _, _ in MERS]
+
+BAD_EVENTS = {"tempete_legere", "rencontre_suspecte", "tempete_violente", "naufrage"}
+REDUCTION_PAR_VOYAGE = 0.005
+REDUCTION_MAX = 0.5
 
 EVENEMENTS = [
     ("calme", 40),
@@ -36,7 +41,7 @@ async def voyager(interaction: discord.Interaction, destination: app_commands.Ch
     if not mer_data:
         await interaction.followup.send("Destination introuvable.")
         return
-    nom_mer, niveau_requis, cout_berrys, cout_endurance, ile_arrivee = mer_data
+    nom_mer, niveau_requis, cout_berrys, cout_endurance_base, ile_arrivee = mer_data
 
     if player["mer"] == nom_mer:
         await interaction.followup.send(f"Tu navigues déjà sur **{nom_mer}** !")
@@ -47,6 +52,11 @@ async def voyager(interaction: discord.Interaction, destination: app_commands.Ch
     if player["berrys"] < cout_berrys:
         await interaction.followup.send(f"⛔ Le voyage vers **{nom_mer}** coûte **{cout_berrys:,}฿** de provisions, tu n'as que {player['berrys']:,}฿.")
         return
+
+    meteo_nom = await get_current_weather(interaction.guild_id)
+    mods = get_modifiers(meteo_nom)
+    cout_endurance = round(cout_endurance_base * mods["endurance_voyage"])
+
     if player["endurance"] < cout_endurance:
         await interaction.followup.send(f"😮‍💨 Il te faut **{cout_endurance}** endurance pour ce voyage (tu as {player['endurance']}). Repose-toi un peu !")
         return
@@ -55,7 +65,13 @@ async def voyager(interaction: discord.Interaction, destination: app_commands.Ch
     if protege:
         evenement = "calme"
     else:
-        evenement = random.choices([e[0] for e in EVENEMENTS], weights=[e[1] for e in EVENEMENTS], k=1)[0]
+        reduction_nav = min(REDUCTION_MAX, (player["nb_voyages_reussis"] or 0) * REDUCTION_PAR_VOYAGE)
+        poids_ajustes = []
+        for nom, poids in EVENEMENTS:
+            if nom in BAD_EVENTS:
+                poids = poids * mods["bad_event"] * (1 - reduction_nav)
+            poids_ajustes.append(poids)
+        evenement = random.choices([e[0] for e in EVENEMENTS], weights=poids_ajustes, k=1)[0]
 
     pv_perte = 0
     endurance_extra = 0
@@ -107,7 +123,8 @@ async def voyager(interaction: discord.Interaction, destination: app_commands.Ch
                 UPDATE players SET
                     mer = $3, ile = $4,
                     berrys = berrys - $5 + $6,
-                    pv = $7, endurance = $8
+                    pv = $7, endurance = $8,
+                    nb_voyages_reussis = nb_voyages_reussis + 1
                 WHERE guild_id=$1 AND user_id=$2
             """, interaction.guild_id, interaction.user.id, nom_mer, ile_arrivee,
                  cout_berrys + berrys_perte, berrys_bonus, nouveau_pv, nouvelle_endurance)
@@ -119,7 +136,6 @@ async def voyager(interaction: discord.Interaction, destination: app_commands.Ch
                 )
 
             if durabilite_perte > 0:
-                # Arme, armure et NAVIRE encaissent tous les dégâts d'une mauvaise traversée
                 for item_id in [current["equip_arme_principale"], current["equip_corps"], current["equip_navire"]]:
                     if item_id:
                         await conn.execute("""
