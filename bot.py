@@ -55,6 +55,7 @@ from cogs.fruit import setup_fruit_commands
 from cogs.haki import setup_haki_commands
 from cogs.maitrise import setup_maitrise_commands
 from cogs.reputation import setup_reputation_commands
+from cogs.meteo import setup_meteo_commands, start_meteo_loop
 
 app = Flask('')
 
@@ -122,6 +123,7 @@ setup_fruit_commands(bot)
 setup_haki_commands(bot)
 setup_maitrise_commands(bot)
 setup_reputation_commands(bot)
+setup_meteo_commands(bot)
 
 @bot.event
 async def on_ready():
@@ -135,6 +137,7 @@ async def on_ready():
     bot.add_view(WelcomeVerifyView())
     bot.add_view(GuideView())
     start_boss_loop(bot)
+    start_meteo_loop(bot)
     try:
         synced = await bot.tree.sync()
         print(f"{len(synced)} commande(s) slash synchronisée(s).")
