@@ -3,6 +3,7 @@ from discord import app_commands
 from database.db import get_pool
 from utils.players import get_player
 from utils.channel_check import require_salon
+from utils.respect import add_respect
 from utils.equipages import rang_valeur, get_crew_by_id, get_crew_by_nom, get_membres, count_membres, prime_cumulee
 
 RANGS_ORDRE = ["Matelot", "Officier", "Commandant", "Amiral"]
@@ -405,6 +406,7 @@ async def coffre_marine_depot(interaction: discord.Interaction, montant: int):
         async with conn.transaction():
             await conn.execute("UPDATE players SET berrys = berrys - $3 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, interaction.user.id, montant)
             await conn.execute("UPDATE crews SET coffre_berrys = coffre_berrys + $2 WHERE id = $1", crew["id"], montant)
+    await add_respect(interaction.guild_id, interaction.user.id, montant)
     await interaction.followup.send(f"🏦 **{montant:,}฿** déposés dans le coffre de **{crew['nom']}**.")
 
 
