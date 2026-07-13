@@ -4,6 +4,7 @@ from database.db import get_pool
 from utils.players import get_player
 from utils.shop import seed_shop_if_needed, get_visible_items, get_item_by_id
 from utils.channel_check import require_salon
+from utils.reputation import get_discount_pct, add_reputation_marchand
 
 RARETE_COLORS = {
     "Commun": 0x95A5A6,
@@ -51,15 +52,19 @@ async def marche_voir(interaction: discord.Interaction, categorie: app_commands.
         await interaction.followup.send("Aucun objet disponible dans cette catégorie pour le moment.")
         return
 
+    discount = get_discount_pct(player)
+    reduction_texte = f" • 🎭 Réduction fidélité active : **-{discount}%**" if discount > 0 else ""
     embed = discord.Embed(
         title="🛒 Marché aux trésors",
-        description=f"Faction : **{player['faction']}** — {len(items)} objet(s) disponible(s)\nUtilise `/marche infos` pour les détails, `/marche acheter` pour acheter.",
+        description=f"Faction : **{player['faction']}** — {len(items)} objet(s) disponible(s)\nUtilise `/marche infos` pour les détails, `/marche acheter` pour acheter.{reduction_texte}",
         color=0xF4C430
     )
     for it in items[:20]:
         stock_txt = "Stock illimité" if it["stock"] == -1 else f"Stock : {it['stock']}"
+        prix_affiche = it["prix"] if discount == 0 else round(it["prix"] * (1 - discount / 100))
+        prix_texte = f"{prix_affiche:,}฿" if discount == 0 else f"~~{it['prix']:,}฿~~ **{prix_affiche:,}฿**"
         embed.add_field(
-            name=f"{it['nom']} — {it['prix']:,}฿",
+            name=f"{it['nom']} — {prix_texte}",
             value=f"{it['rarete']} • Niv. {it['niveau_requis']}+ • {stock_txt}",
             inline=False
         )
@@ -128,7 +133,9 @@ async def marche_acheter(interaction: discord.Interaction, objet: int, quantite:
         await interaction.followup.send(f"⛔ Niveau {item['niveau_requis']} requis (tu es niveau {player['niveau']}).")
         return
 
-    cout_total = item["prix"] * quantite
+    discount = get_discount_pct(player)
+    prix_unitaire = round(item["prix"] * (1 - discount / 100)) if discount > 0 else item["prix"]
+    cout_total = prix_unitaire * quantite
     if cout_total > player["berrys"]:
         await interaction.followup.send(f"Tu n'as pas assez de Berrys ! Il te faut **{cout_total:,}฿**, tu as **{player['berrys']:,}฿**.")
         return
@@ -165,11 +172,12 @@ async def marche_acheter(interaction: discord.Interaction, objet: int, quantite:
                         interaction.guild_id, interaction.user.id, item["id"], item["durabilite_max"]
                     )
 
-    embed = discord.Embed(
-        title="✅ Achat effectué !",
-        description=f"Tu as acheté **{quantite}x {item['nom']}** pour **{cout_total:,}฿**.",
-        color=0x27AE60
-    )
+    await add_reputation_marchand(interaction.guild_id, interaction.user.id)
+
+    description = f"Tu as acheté **{quantite}x {item['nom']}** pour **{cout_total:,}฿**."
+    if discount > 0:
+        description += f" (réduction fidélité -{discount}% appliquée)"
+    embed = discord.Embed(title="✅ Achat effectué !", description=description, color=0x27AE60)
     embed.set_footer(text="🌊 One Piece Bot • Marché")
     await interaction.followup.send(embed=embed)
 
