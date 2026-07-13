@@ -2,9 +2,10 @@ from database.db import get_pool
 from utils.fruits import get_fruit_bonus
 from utils.haki import get_haki_bonus
 from utils.maitrise import get_maitrise_bonus
+from utils.respect import get_respect_bonus
 
 async def get_effective_stats(guild_id: int, user_id: int, base_player):
-    """Calcule les stats effectives : base + équipement + Fruit du Démon + Haki + Maîtrise d'arme."""
+    """Calcule les stats effectives : base + équipement + Fruit du Démon + Haki + Maîtrise d'arme + Respect d'équipage."""
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch("""
@@ -28,10 +29,11 @@ async def get_effective_stats(guild_id: int, user_id: int, base_player):
     haki_bonus = get_haki_bonus(base_player)
     type_arme_equipee = type_arme_row["type_arme"] if type_arme_row else None
     maitrise_bonus = get_maitrise_bonus(base_player, type_arme_equipee)
+    respect_bonus = get_respect_bonus(base_player)
 
     return {
         "force": base_player["force"] + total("bonus_force") + fruit_bonus["force"] + haki_bonus["force"] + maitrise_bonus,
-        "defense": base_player["defense"] + total("bonus_defense") + fruit_bonus["defense"] + haki_bonus["defense"],
+        "defense": base_player["defense"] + total("bonus_defense") + fruit_bonus["defense"] + haki_bonus["defense"] + respect_bonus,
         "vitesse": base_player["vitesse"] + total("bonus_vitesse") + fruit_bonus["vitesse"] + haki_bonus["vitesse"],
         "agilite": base_player["agilite"] + total("bonus_agilite") + fruit_bonus["agilite"] + haki_bonus["agilite"],
         "chance": base_player["chance"] + total("bonus_chance"),
