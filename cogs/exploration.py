@@ -9,6 +9,7 @@ from utils.announcements import announce_level_up
 from utils.quetes import increment_quest_progress
 from utils.combat_stats import get_effective_stats
 from utils.fruits import get_fruits_disponibles, manger_fruit
+from utils.meteo import get_current_weather, get_modifiers
 
 COUT_ENDURANCE = 15
 
@@ -34,6 +35,21 @@ OUTCOMES = [
     ("empreintes", 3, 10, 15, 5, 10),
 ]
 
+# Réaction du PNJ selon la Notoriété du joueur : (seuil, texte, multiplicateur de Berrys)
+NOTORIETE_PNJ_TIERS = [
+    (500, "une foule enthousiaste s'attroupe pour te saluer, ta réputation te précède partout", 1.5),
+    (200, "un marin, visiblement impressionné par ta réputation, t'offre volontiers quelques Berrys", 1.3),
+    (50, "un vieux marin qui semble te reconnaître te confie quelques Berrys", 1.15),
+    (0, "un vieux marin te confie quelques Berrys en souvenir d'une autre époque", 1.0),
+]
+
+def get_pnj_reaction(notoriete: int):
+    for seuil, texte, mult in NOTORIETE_PNJ_TIERS:
+        if notoriete >= seuil:
+            return texte, mult
+    return NOTORIETE_PNJ_TIERS[-1][1], NOTORIETE_PNJ_TIERS[-1][2]
+
+
 @app_commands.command(name="explorer", description="Explorer les environs pour trouver des ressources")
 @require_salon("salon_exploration")
 async def explorer(interaction: discord.Interaction):
@@ -49,6 +65,9 @@ async def explorer(interaction: discord.Interaction):
             f"tu as {player['endurance']}). Ton endurance se régénère avec le temps, patiente un peu !"
         )
         return
+
+    meteo_nom = await get_current_weather(interaction.guild_id)
+    mods = get_modifiers(meteo_nom)
 
     # Chance ultra-rare de tomber sur un Fruit du Démon, influencée par la stat Chance cachée
     if not player["fruit"]:
@@ -86,7 +105,12 @@ async def explorer(interaction: discord.Interaction):
                     return
 
     lieu = random.choice(LIEUX)
-    outcome = random.choices(OUTCOMES, weights=[o[1] for o in OUTCOMES], k=1)[0]
+    outcomes_ajustes = []
+    for name, poids, xp_min, xp_max, xpc_min, xpc_max in OUTCOMES:
+        if name == "rien":
+            poids = poids * mods["rien_explorer"]
+        outcomes_ajustes.append((name, poids, xp_min, xp_max, xpc_min, xpc_max))
+    outcome = random.choices(outcomes_ajustes, weights=[o[1] for o in outcomes_ajustes], k=1)[0]
     type_, _, xp_min, xp_max, xpc_min, xpc_max = outcome
 
     xp_gain = random.randint(xp_min, xp_max)
@@ -99,29 +123,30 @@ async def explorer(interaction: discord.Interaction):
     if type_ == "rien":
         message = f"Tu explores {lieu} mais ne trouves rien de particulier cette fois-ci."
     elif type_ == "petits_berrys":
-        berrys_gain = random.randint(10, 30)
+        berrys_gain = round(random.randint(10, 30) * mods["berrys_explorer"])
         message = f"Tu explores {lieu} et trouves **{berrys_gain} Berrys** abandonnés au sol !"
     elif type_ == "gros_berrys":
-        berrys_gain = random.randint(40, 90)
+        berrys_gain = round(random.randint(40, 90) * mods["berrys_explorer"])
         message = f"En fouillant {lieu}, tu déniches une bourse oubliée contenant **{berrys_gain} Berrys** !"
     elif type_ == "objet":
         item = await get_random_loot(interaction.guild_id, player["faction"])
         if item:
             message = f"En explorant {lieu}, tu mets la main sur **{item['nom']}** !"
         else:
-            berrys_gain = random.randint(10, 25)
+            berrys_gain = round(random.randint(10, 25) * mods["berrys_explorer"])
             message = f"Tu explores {lieu} et trouves **{berrys_gain} Berrys** à la place."
     elif type_ == "coffre":
-        berrys_gain = random.randint(50, 100)
+        berrys_gain = round(random.randint(50, 100) * mods["berrys_explorer"])
         message = f"En fouillant {lieu}, tu découvres un coffre entrouvert contenant **{berrys_gain} Berrys** !"
     elif type_ == "pnj":
-        berrys_gain = random.randint(10, 25)
-        message = f"En explorant {lieu}, tu croises un vieux marin qui te confie **{berrys_gain} Berrys** en souvenir d'une autre époque."
+        reaction_texte, reaction_mult = get_pnj_reaction(player["notoriete"])
+        berrys_gain = round(random.randint(10, 25) * mods["berrys_explorer"] * reaction_mult)
+        message = f"En explorant {lieu}, {reaction_texte} : **{berrys_gain} Berrys** !"
     elif type_ == "meteo":
         endurance_cost += 10
         message = f"Une pluie soudaine te surprend alors que tu explores {lieu}. Tu es plus fatigué que prévu (endurance supplémentaire dépensée)."
     elif type_ == "tresor_cache":
-        berrys_gain = random.randint(150, 300)
+        berrys_gain = round(random.randint(150, 300) * mods["berrys_explorer"])
         message = f"🌟 **INCROYABLE !** En fouillant minutieusement {lieu}, tu déterres un véritable **trésor caché** : **{berrys_gain} Berrys** !"
     elif type_ == "empreintes":
         message = f"En explorant {lieu}, tu remarques d'étranges empreintes... quelque chose — ou quelqu'un — est passé par là récemment. 👣"
