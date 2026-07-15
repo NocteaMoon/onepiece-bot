@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from database.db import get_pool
 from cogs.admin import SALON_DEFINITIONS
-from cogs.boss_mondial import get_active_boss
+from cogs.boss_mondial import get_active_boss, force_spawn_boss
 
 AUTOMOD_COLUMNS = ["anti_spam", "anti_liens", "anti_insultes", "anti_raid", "anti_mention", "anti_pub", "anti_alt", "anti_bot"]
 
@@ -68,6 +68,16 @@ def build_home_embed(stats: dict, guild_name: str):
     return embed
 
 
+class DashboardBackHomeButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Accueil", emoji="🏠", style=discord.ButtonStyle.secondary)
+
+    async def callback(self, interaction: discord.Interaction):
+        stats = await get_overview_stats(interaction.guild_id)
+        embed = build_home_embed(stats, interaction.guild.name)
+        await interaction.response.edit_message(embed=embed, view=DashboardHomeView())
+
+
 # ===== SALONS =====
 
 async def get_salon_status_text(guild_id: int, columns: list) -> str:
@@ -125,16 +135,6 @@ class SalonChannelSelect(discord.ui.ChannelSelect):
         )
         embed.set_footer(text="🌊 One Piece Bot • Dashboard")
         await interaction.response.edit_message(embed=embed, view=DashboardSalonCategoryView(self.category_key))
-
-
-class DashboardBackHomeButton(discord.ui.Button):
-    def __init__(self):
-        super().__init__(label="Accueil", emoji="🏠", style=discord.ButtonStyle.secondary)
-
-    async def callback(self, interaction: discord.Interaction):
-        stats = await get_overview_stats(interaction.guild_id)
-        embed = build_home_embed(stats, interaction.guild.name)
-        await interaction.response.edit_message(embed=embed, view=DashboardHomeView())
 
 
 class DashboardBackToSalonsButton(discord.ui.Button):
@@ -214,6 +214,87 @@ class DashboardSalonsOverviewView(discord.ui.View):
         self.add_item(DashboardBackHomeButton())
 
 
+# ===== LANGUE =====
+
+class LangueSelect(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Français", value="fr", emoji="🇫🇷"),
+            discord.SelectOption(label="English", value="en", emoji="🇬🇧"),
+        ]
+        super().__init__(placeholder="Choisis la langue du bot...", options=options, custom_id="dash_langue_select")
+
+    async def callback(self, interaction: discord.Interaction):
+        langue = self.values[0]
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO guild_config (guild_id, lang) VALUES ($1, $2)
+                ON CONFLICT (guild_id) DO UPDATE SET lang = $2
+            """, interaction.guild_id, langue)
+        label = "Français 🇫🇷" if langue == "fr" else "English 🇬"
+        embed = discord.Embed(title="🌐 Langue mise à jour !", description=f"Langue définie sur **{label}**.", color=0x27AE60)
+        embed.set_footer(text="🌊 One Piece Bot • Dashboard")
+        await interaction.response.edit_message(embed=embed, view=DashboardLangueView())
+
+
+class DashboardLangueView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+        self.add_item(LangueSelect())
+        self.add_item(DashboardBackHomeButton())
+
+
+async def build_langue_embed(guild_id: int):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT lang FROM guild_config WHERE guild_id=$1", guild_id)
+    langue_actuelle = row["lang"] if row else "fr"
+    label = "Français 🇫🇷" if langue_actuelle == "fr" else "English 🇬🇧"
+    embed = discord.Embed(title="🌐 Langue", description=f"Langue actuelle : **{label}**", color=0x2C3E50)
+    embed.set_footer(text="🌊 One Piece Bot • Dashboard")
+    return embed
+
+
+# ===== BOSS MONDIAL =====
+
+async def build_boss_embed(guild_id: int):
+    actif = await get_active_boss(guild_id)
+    if not actif:
+        embed = discord.Embed(
+            title="👑 Boss mondial",
+            description="Aucun boss mondial actif pour l'instant. Ils apparaissent spontanément, ou tu peux forcer l'apparition ci-dessous (nécessite un salon Combat configuré).",
+            color=0x2C3E50
+        )
+    else:
+        phase_txt = "Inscriptions en cours" if actif["phase"] == "inscription" else "Combat en cours"
+        embed = discord.Embed(
+            title="👑 Boss mondial",
+            description=f"**{actif['boss_nom'].capitalize()}** — {phase_txt}\nMer : {actif['mer']}\nPV : {max(0, actif['pv']):,}/{actif['pv_max']:,}",
+            color=0x7F0000
+        )
+    embed.set_footer(text="🌊 One Piece Bot • Dashboard")
+    return embed
+
+
+class BossForcerButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Forcer l'apparition", emoji="⚔️", style=discord.ButtonStyle.danger)
+
+    async def callback(self, interaction: discord.Interaction):
+        ok, message = await force_spawn_boss(interaction.guild)
+        embed = await build_boss_embed(interaction.guild_id)
+        await interaction.response.edit_message(embed=embed, view=DashboardBossView())
+        await interaction.followup.send(message, ephemeral=True)
+
+
+class DashboardBossView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+        self.add_item(BossForcerButton())
+        self.add_item(DashboardBackHomeButton())
+
+
 # ===== ACCUEIL =====
 
 CATEGORIES = {
@@ -236,6 +317,16 @@ class DashboardCategorySelect(discord.ui.Select):
         if self.values[0] == "salons":
             embed = await build_salons_overview_embed(interaction.guild_id)
             await interaction.response.edit_message(embed=embed, view=DashboardSalonsOverviewView())
+            return
+
+        if self.values[0] == "langue":
+            embed = await build_langue_embed(interaction.guild_id)
+            await interaction.response.edit_message(embed=embed, view=DashboardLangueView())
+            return
+
+        if self.values[0] == "boss":
+            embed = await build_boss_embed(interaction.guild_id)
+            await interaction.response.edit_message(embed=embed, view=DashboardBossView())
             return
 
         label = CATEGORIES[self.values[0]]
