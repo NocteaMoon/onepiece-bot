@@ -56,6 +56,7 @@ from cogs.haki import setup_haki_commands
 from cogs.maitrise import setup_maitrise_commands
 from cogs.reputation import setup_reputation_commands
 from cogs.meteo import setup_meteo_commands, start_meteo_loop
+from cogs.secrets import setup_secrets_commands
 
 app = Flask('')
 
@@ -124,6 +125,7 @@ setup_haki_commands(bot)
 setup_maitrise_commands(bot)
 setup_reputation_commands(bot)
 setup_meteo_commands(bot)
+setup_secrets_commands(bot)
 
 @bot.event
 async def on_ready():
