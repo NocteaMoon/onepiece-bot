@@ -22,6 +22,15 @@ AUTOMOD_TOGGLE_LABELS = {
     "anti_alt": "Anti-comptes récents", "anti_bot": "Anti-bot",
 }
 
+LOGS_TOGGLE_LABELS = {
+    "log_msg_delete": "Suppression de messages",
+    "log_msg_edit": "Modification de messages",
+    "log_join_leave": "Arrivées / départs",
+    "log_salons": "Changements de salons",
+    "log_roles": "Changements de rôles",
+    "log_pseudos": "Changements de pseudo",
+}
+
 MARCHE_CATEGORIES = ["Consommable", "Accessoire", "Tête", "Corps", "Navire", "Arme", "Ingrédient", "Plat", "Relique", "Partition"]
 MARCHE_FACTIONS = ["Tous", "Pirate", "Marine", "Révolutionnaire"]
 MARCHE_RARETES = ["Commun", "Aiguisé", "Grade", "Grand Grade", "Suprême", "Mythique"]
@@ -44,6 +53,8 @@ async def get_overview_stats(guild_id: int):
     async with pool.acquire() as conn:
         config_row = await conn.fetchrow("SELECT * FROM guild_config WHERE guild_id = $1", guild_id)
         automod_row = await conn.fetchrow("SELECT * FROM automod_config WHERE guild_id = $1", guild_id)
+        logs_row = await conn.fetchrow("SELECT * FROM logs_config WHERE guild_id = $1", guild_id)
+        welcome_row = await conn.fetchrow("SELECT * FROM welcome_config WHERE guild_id = $1", guild_id)
         nb_items = await conn.fetchval("SELECT COUNT(*) FROM shop_items WHERE guild_id = $1 AND actif = TRUE", guild_id)
         nb_permissions = await conn.fetchval("SELECT COUNT(*) FROM guild_command_roles WHERE guild_id = $1", guild_id)
 
@@ -55,12 +66,16 @@ async def get_overview_stats(guild_id: int):
         langue = "fr"
 
     nb_automod_actifs = sum(1 for col in AUTOMOD_COLUMNS if automod_row[col]) if automod_row else 0
+    nb_logs_actifs = sum(1 for col in LOGS_TOGGLE_LABELS if logs_row[col]) if logs_row else len(LOGS_TOGGLE_LABELS)
+    bienvenue_configuree = bool(welcome_row) and bool(welcome_row["message"])
     boss_actif = await get_active_boss(guild_id)
 
     return {
         "nb_salons": nb_salons, "total_salons": len(SALON_DEFINITIONS), "langue": langue,
         "nb_items": nb_items or 0, "nb_permissions": nb_permissions or 0,
         "nb_automod_actifs": nb_automod_actifs, "total_automod": len(AUTOMOD_COLUMNS),
+        "nb_logs_actifs": nb_logs_actifs, "total_logs": len(LOGS_TOGGLE_LABELS),
+        "bienvenue_configuree": bienvenue_configuree,
         "boss_actif": boss_actif is not None,
     }
 
@@ -75,6 +90,8 @@ def build_home_embed(stats: dict, guild_name: str):
     embed.add_field(name="🌐 Langue", value=stats["langue"].upper(), inline=True)
     embed.add_field(name="🛒 Marché", value=f"{stats['nb_items']} objet(s) actif(s)", inline=True)
     embed.add_field(name="🛡️ Automod", value=f"{stats['nb_automod_actifs']}/{stats['total_automod']} règles actives", inline=True)
+    embed.add_field(name="📋 Logs", value=f"{stats['nb_logs_actifs']}/{stats['total_logs']} actifs", inline=True)
+    embed.add_field(name="👋 Bienvenue", value="✅ Configurée" if stats["bienvenue_configuree"] else "⚪ Par défaut", inline=True)
     embed.add_field(name="🔑 Permissions", value=f"{stats['nb_permissions']} règle(s) personnalisée(s)", inline=True)
     embed.add_field(name="👑 Boss mondial", value="🟢 Actif" if stats["boss_actif"] else "⚪ Aucun en cours", inline=True)
     embed.set_footer(text="🌊 One Piece Bot • Dashboard")
@@ -431,6 +448,195 @@ class DashboardModerationView(discord.ui.View):
     @classmethod
     async def create(cls, guild_id):
         row = await get_automod_row(guild_id)
+        return cls(row)
+
+
+# ===== LOGS =====
+
+async def ensure_logs_row(guild_id: int):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("INSERT INTO logs_config (guild_id) VALUES ($1) ON CONFLICT (guild_id) DO NOTHING", guild_id)
+
+
+async def get_logs_row(guild_id: int):
+    await ensure_logs_row(guild_id)
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        return await conn.fetchrow("SELECT * FROM logs_config WHERE guild_id=$1", guild_id)
+
+
+async def build_logs_embed(guild_id: int):
+    row = await get_logs_row(guild_id)
+    lignes = [f"{'✅' if row[col] else '❌'} {label}" for col, label in LOGS_TOGGLE_LABELS.items()]
+    embed = discord.Embed(title="📋 Logs", description="\n".join(lignes), color=0x2C3E50)
+    embed.set_footer(text="🌊 One Piece Bot • Dashboard • Nécessite un salon Logs configuré (section Salons)")
+    return embed
+
+
+class LogsToggleSelect(discord.ui.Select):
+    def __init__(self, current_row):
+        options = [
+            discord.SelectOption(label=label, value=col, default=bool(current_row[col]))
+            for col, label in LOGS_TOGGLE_LABELS.items()
+        ]
+        super().__init__(placeholder="Coche les événements à journaliser...", options=options, min_values=0, max_values=len(options))
+
+    async def callback(self, interaction: discord.Interaction):
+        selected = set(self.values)
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            for col in LOGS_TOGGLE_LABELS:
+                await conn.execute(f"UPDATE logs_config SET {col} = $2 WHERE guild_id=$1", interaction.guild_id, col in selected)
+        embed = await build_logs_embed(interaction.guild_id)
+        await interaction.response.edit_message(embed=embed, view=await DashboardLogsView.create(interaction.guild_id))
+
+
+class DashboardLogsView(discord.ui.View):
+    def __init__(self, logs_row):
+        super().__init__(timeout=180)
+        self.add_item(LogsToggleSelect(logs_row))
+        self.add_item(DashboardBackHomeButton())
+
+    @classmethod
+    async def create(cls, guild_id):
+        row = await get_logs_row(guild_id)
+        return cls(row)
+
+
+# ===== BIENVENUE =====
+
+async def ensure_welcome_row(guild_id: int):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("INSERT INTO welcome_config (guild_id) VALUES ($1) ON CONFLICT (guild_id) DO NOTHING", guild_id)
+
+
+async def get_welcome_row(guild_id: int):
+    await ensure_welcome_row(guild_id)
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        return await conn.fetchrow("SELECT * FROM welcome_config WHERE guild_id=$1", guild_id)
+
+
+async def build_bienvenue_embed(guild_id: int):
+    row = await get_welcome_row(guild_id)
+    role_txt = f"<@&{row['auto_role_id']}>" if row["auto_role_id"] else "Aucun"
+    verif_txt = "✅ Activée" if row["verification_enabled"] else "❌ Désactivée"
+    bg_txt = "✅ Définie" if row["background_url"] else "❌ Aucune"
+    description = (
+        f"**Message actuel :**\n{row['message']}\n\n"
+        f"**Rôle automatique :** {role_txt}\n"
+        f"**Vérification :** {verif_txt}\n"
+        f"**Image de fond :** {bg_txt}"
+    )
+    embed = discord.Embed(title="👋 Bienvenue", description=description, color=0x2C3E50)
+    embed.set_footer(text="🌊 One Piece Bot • Dashboard")
+    return embed
+
+
+class WelcomeMessageModal(discord.ui.Modal, title="Modifier le message de bienvenue"):
+    def __init__(self, current_message):
+        super().__init__()
+        self.message = discord.ui.TextInput(
+            label="Message ({mention} {serveur} {nombre})",
+            style=discord.TextStyle.paragraph,
+            default=current_message,
+            max_length=500
+        )
+        self.add_item(self.message)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE welcome_config SET message = $2 WHERE guild_id=$1", interaction.guild_id, self.message.value)
+        embed = await build_bienvenue_embed(interaction.guild_id)
+        await interaction.response.edit_message(embed=embed, view=await DashboardBienvenueView.create(interaction.guild_id))
+
+
+class WelcomeMessageButton(discord.ui.Button):
+    def __init__(self, current_message):
+        self.current_message = current_message
+        super().__init__(label="Modifier le message", emoji="✏️", style=discord.ButtonStyle.primary)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(WelcomeMessageModal(self.current_message))
+
+
+class WelcomeRoleSelect(discord.ui.RoleSelect):
+    def __init__(self):
+        super().__init__(placeholder="Choisis le rôle automatique...", min_values=1, max_values=1)
+
+    async def callback(self, interaction: discord.Interaction):
+        role = self.values[0]
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE welcome_config SET auto_role_id = $2 WHERE guild_id=$1", interaction.guild_id, role.id)
+        embed = await build_bienvenue_embed(interaction.guild_id)
+        await interaction.response.edit_message(embed=embed, view=await DashboardBienvenueView.create(interaction.guild_id))
+
+
+class WelcomeRoleButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Définir le rôle auto", emoji="🎭", style=discord.ButtonStyle.secondary)
+
+    async def callback(self, interaction: discord.Interaction):
+        embed = discord.Embed(title="👋 Rôle automatique", description="Choisis le rôle à attribuer aux nouveaux membres.", color=0x2C3E50)
+        embed.set_footer(text="🌊 One Piece Bot • Dashboard")
+        view = discord.ui.View(timeout=180)
+        view.add_item(WelcomeRoleSelect())
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
+class WelcomeVerificationToggleButton(discord.ui.Button):
+    def __init__(self, current_state):
+        self.current_state = current_state
+        label = "Désactiver la vérification" if current_state else "Activer la vérification"
+        super().__init__(label=label, emoji="🔐", style=discord.ButtonStyle.secondary)
+
+    async def callback(self, interaction: discord.Interaction):
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE welcome_config SET verification_enabled = $2 WHERE guild_id=$1", interaction.guild_id, not self.current_state)
+        embed = await build_bienvenue_embed(interaction.guild_id)
+        await interaction.response.edit_message(embed=embed, view=await DashboardBienvenueView.create(interaction.guild_id))
+
+
+class WelcomeBackgroundModal(discord.ui.Modal, title="Image de fond de la carte de bienvenue"):
+    def __init__(self, current_url):
+        super().__init__()
+        self.url = discord.ui.TextInput(label="Lien de l'image (URL directe)", default=current_url or "", required=False, max_length=300)
+        self.add_item(self.url)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE welcome_config SET background_url = $2 WHERE guild_id=$1", interaction.guild_id, self.url.value or None)
+        embed = await build_bienvenue_embed(interaction.guild_id)
+        await interaction.response.edit_message(embed=embed, view=await DashboardBienvenueView.create(interaction.guild_id))
+
+
+class WelcomeBackgroundButton(discord.ui.Button):
+    def __init__(self, current_url):
+        self.current_url = current_url
+        super().__init__(label="Image de fond", emoji="🖼️", style=discord.ButtonStyle.secondary)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(WelcomeBackgroundModal(self.current_url))
+
+
+class DashboardBienvenueView(discord.ui.View):
+    def __init__(self, welcome_row):
+        super().__init__(timeout=180)
+        self.add_item(WelcomeMessageButton(welcome_row["message"]))
+        self.add_item(WelcomeRoleButton())
+        self.add_item(WelcomeVerificationToggleButton(welcome_row["verification_enabled"]))
+        self.add_item(WelcomeBackgroundButton(welcome_row["background_url"]))
+        self.add_item(DashboardBackHomeButton())
+
+    @classmethod
+    async def create(cls, guild_id):
+        row = await get_welcome_row(guild_id)
         return cls(row)
 
 
@@ -939,6 +1145,8 @@ class DashboardPermissionsView(discord.ui.View):
 CATEGORIES = {
     "salons": "🗺️ Salons",
     "moderation": "🛡️ Modération & Automod",
+    "logs": "📋 Logs",
+    "bienvenue": "👋 Bienvenue",
     "marche": "🛒 Marché",
     "joueurs": "👤 Joueurs",
     "boss": "👑 Boss mondial",
@@ -965,6 +1173,12 @@ class DashboardCategorySelect(discord.ui.Select):
         elif self.values[0] == "moderation":
             embed = await build_moderation_embed(interaction.guild_id)
             await interaction.response.edit_message(embed=embed, view=await DashboardModerationView.create(interaction.guild_id))
+        elif self.values[0] == "logs":
+            embed = await build_logs_embed(interaction.guild_id)
+            await interaction.response.edit_message(embed=embed, view=await DashboardLogsView.create(interaction.guild_id))
+        elif self.values[0] == "bienvenue":
+            embed = await build_bienvenue_embed(interaction.guild_id)
+            await interaction.response.edit_message(embed=embed, view=await DashboardBienvenueView.create(interaction.guild_id))
         elif self.values[0] == "marche":
             embed = await build_marche_home_embed(interaction.guild_id)
             await interaction.response.edit_message(embed=embed, view=DashboardMarcheView())
