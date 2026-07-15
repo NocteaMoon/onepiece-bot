@@ -15,6 +15,7 @@ COUT_ENDURANCE = 15
 
 FRUIT_CHANCE_BASE = 0.003
 FRUIT_CHANCE_PAR_POINT = 0.0004
+SECRET_CHANCE = 0.0015
 
 LIEUX = [
     "la plage de galets", "la forêt tropicale", "les ruines abandonnées", "le vieux phare",
@@ -103,6 +104,34 @@ async def explorer(interaction: discord.Interaction):
                     if niveaux_gagnes > 0:
                         await announce_level_up(interaction, interaction.user, nouveau_niveau)
                     return
+
+    # Découverte secrète ultra-rare, une seule fois par joueur
+    if not player["secret_trouve"]:
+        if random.random() < SECRET_CHANCE:
+            gain_secret = random.randint(200, 400)
+            pool = get_pool()
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    "UPDATE players SET endurance = endurance - $3, berrys = berrys + $4, chance = chance + 3, secret_trouve = TRUE WHERE guild_id=$1 AND user_id=$2",
+                    interaction.guild_id, interaction.user.id, COUT_ENDURANCE, gain_secret
+                )
+            niveaux_gagnes, nouveau_niveau = await add_xp(interaction.guild_id, interaction.user.id, 50, 25)
+            await increment_quest_progress(interaction.guild_id, interaction.user.id, "explorer")
+
+            embed = discord.Embed(
+                title="✨ Une trouvaille hors du commun...",
+                description=(
+                    f"Au détour d'un rocher, tu découvres une bouteille scellée depuis des lustres, "
+                    f"un message à demi-effacé roulé à l'intérieur... Personne d'autre n'a jamais mis la main dessus.\n\n"
+                    f"🎁 **{gain_secret}฿** et un éclat de chance qui semble te suivre désormais (+3 Chance, permanent) !"
+                ),
+                color=0xF1C40F
+            )
+            embed.set_footer(text="🌊 One Piece Bot • ???")
+            await interaction.followup.send(embed=embed)
+            if niveaux_gagnes > 0:
+                await announce_level_up(interaction, interaction.user, nouveau_niveau)
+            return
 
     lieu = random.choice(LIEUX)
     outcomes_ajustes = []
