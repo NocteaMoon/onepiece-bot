@@ -172,6 +172,7 @@ async def init_db():
         await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS nb_boss_vaincus INT DEFAULT 0")
         await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS respect_equipage INT DEFAULT 0")
         await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS nb_voyages_reussis INT DEFAULT 0")
+        await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS secret_trouve BOOLEAN DEFAULT FALSE")
 
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS shop_items (
@@ -335,6 +336,17 @@ async def init_db():
                 guild_id BIGINT PRIMARY KEY,
                 meteo TEXT DEFAULT 'Ciel dégagé',
                 changee_le TIMESTAMP DEFAULT NOW()
+            )
+        """)
+
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS active_buffs (
+                guild_id BIGINT,
+                user_id BIGINT,
+                stat TEXT,
+                valeur INT,
+                expire_le TIMESTAMP,
+                PRIMARY KEY (guild_id, user_id)
             )
         """)
 
