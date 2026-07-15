@@ -3,6 +3,8 @@ from discord import app_commands
 from database.db import get_pool
 from utils.players import get_player
 from utils.shop import get_inventory
+from utils.buffs import apply_buff
+from data.buffs_cuisine import BUFFS_CUISINE
 
 SLOT_LABELS = {
     "arme_principale": "Arme principale",
@@ -46,9 +48,10 @@ async def inventaire_voir(interaction: discord.Interaction, membre: discord.Memb
         for it in items:
             etat = " ✅ équipé" if it["equipe"] else ""
             dur = f" ({it['durabilite']}/{it['durabilite_max']} durabilité)" if it["slot"] else ""
-            lines.append(f"**{it['nom']}** x{it['quantite']}{etat}{dur}")
+            buff_tag = " 🍳" if it["nom"] in BUFFS_CUISINE else ""
+            lines.append(f"**{it['nom']}**{buff_tag} x{it['quantite']}{etat}{dur}")
         embed.add_field(name=cat, value="\n".join(lines), inline=False)
-    embed.set_footer(text="🌊 One Piece Bot • Inventaire")
+    embed.set_footer(text="🌊 One Piece Bot • Inventaire • 🍳 = donne un bonus temporaire à l'usage")
     await interaction.followup.send(embed=embed)
 
 
@@ -147,11 +150,16 @@ async def inventaire_utiliser(interaction: discord.Interaction, objet: int):
             else:
                 await conn.execute("DELETE FROM inventory WHERE id = $1", inv_row["id"])
 
-    embed = discord.Embed(
-        title=f"✨ {item['nom']} utilisé !",
-        description=f"PV : {player['pv']} → {new_pv}\nEndurance : {player['endurance']} → {new_end}",
-        color=0x27AE60
-    )
+    description = f"PV : {player['pv']} → {new_pv}\nEndurance : {player['endurance']} → {new_end}"
+
+    buff = BUFFS_CUISINE.get(item["nom"])
+    if buff:
+        stat, valeur, duree = buff
+        await apply_buff(interaction.guild_id, interaction.user.id, stat, valeur, duree)
+        stat_labels = {"force": "Force", "defense": "Défense", "vitesse": "Vitesse", "agilite": "Agilité"}
+        description += f"\n\n🍳 **Bonus temporaire** : +{valeur} {stat_labels.get(stat, stat)} pendant {duree} minutes !"
+
+    embed = discord.Embed(title=f"✨ {item['nom']} utilisé !", description=description, color=0x27AE60)
     embed.set_footer(text="🌊 One Piece Bot • Inventaire")
     await interaction.followup.send(embed=embed)
 
