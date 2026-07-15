@@ -47,7 +47,8 @@ def embed_economie():
             "seul ton argent **liquide** est menacé, pas ta banque.\n\n"
             "**`/marche voir|infos|acheter`** — Le marché aux trésors, filtré selon ta faction. Ta réputation "
             "peut te faire économiser jusqu'à 20% sur tes achats !\n\n"
-            "**`/inventaire voir|equiper|desequiper|utiliser|jeter`** — Gère tes objets et ton équipement.\n\n"
+            "**`/inventaire voir|equiper|desequiper|utiliser|jeter`** — Gère tes objets et ton équipement. "
+            "Certains plats (marqués 🍳) donnent un bonus de stat temporaire en plus du soin !\n\n"
             "**`/economie donner`** — Envoie des Berrys à un autre joueur."
         ),
         color=0xF4C430
@@ -172,8 +173,8 @@ def embed_combat():
             "⚠️ **En cas de défaite en PvE** : tu perds un peu de Berrys liquides, ton équipement s'abîme "
             "(pense à un Forgeron !), et tu es K.O. quelques minutes (les actions pacifiques restent possibles).\n\n"
             "Équipe de bonnes armes/armures via `/inventaire equiper` pour de meilleures stats en combat — "
-            "et n'oublie pas que ton **Fruit du Démon**, ton **Haki**, ta **maîtrise d'arme** et ton "
-            "**Respect d'équipage** boostent aussi tes stats effectives !"
+            "et n'oublie pas que ton **Fruit du Démon**, ton **Haki**, ta **maîtrise d'arme**, ton "
+            "**Respect d'équipage** et un bon repas de Cuisinier boostent aussi tes stats effectives !"
         ),
         color=0xC0392B
     )
@@ -186,7 +187,9 @@ def embed_metiers():
         description=(
             "Les métiers sont **réservés à la faction Civil**. Choisis-en un avec `/metier choisir`, "
             "puis suis ta progression avec `/metier voir`. Chaque métier a ses propres recettes débloquées par rang.\n\n"
-            "**🍳 Cuisinier** → `/cuisiner` transforme tes ingrédients récoltés en plats qui soignent.\n"
+            "**🍳 Cuisinier** → `/cuisiner` transforme tes ingrédients récoltés en plats. Certains plats "
+            "(Ragoût de sanglier, Poisson tigre grillé, Tarte de la moisson, Festin du capitaine) donnent aussi "
+            "un **bonus de stat temporaire** en plus du soin, à utiliser via `/inventaire utiliser` !\n"
             "**🔨 Forgeron** → `/forgeron reparer` restaure la durabilité de ton équipement, "
             "`/forgeron forger` crée de nouvelles armes/armures à partir de minerais.\n"
             "**💊 Médecin** → `/medecin soigner` restaure les PV et lève le K.O. d'un joueur, "
