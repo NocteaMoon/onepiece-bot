@@ -58,6 +58,7 @@ from cogs.reputation import setup_reputation_commands
 from cogs.meteo import setup_meteo_commands, start_meteo_loop
 from cogs.secrets import setup_secrets_commands
 from cogs.dashboard import setup_dashboard_commands
+from cogs.pirate_minijeux import setup_pirate_minijeux_commands
 
 app = Flask('')
 
@@ -128,6 +129,7 @@ setup_reputation_commands(bot)
 setup_meteo_commands(bot)
 setup_secrets_commands(bot)
 setup_dashboard_commands(bot)
+setup_pirate_minijeux_commands(bot)
 
 @bot.event
 async def on_ready():
