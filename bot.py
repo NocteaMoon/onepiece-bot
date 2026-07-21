@@ -60,6 +60,7 @@ from cogs.secrets import setup_secrets_commands
 from cogs.dashboard import setup_dashboard_commands
 from cogs.pirate_minijeux import setup_pirate_minijeux_commands
 from cogs.marine_minijeux import setup_marine_minijeux_commands
+from cogs.revolution_minijeux import setup_revolution_minijeux_commands
 
 app = Flask('')
 
@@ -132,6 +133,7 @@ setup_secrets_commands(bot)
 setup_dashboard_commands(bot)
 setup_pirate_minijeux_commands(bot)
 setup_marine_minijeux_commands(bot)
+setup_revolution_minijeux_commands(bot)
 
 @bot.event
 async def on_ready():
