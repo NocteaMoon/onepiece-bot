@@ -237,15 +237,22 @@ def embed_minijeux():
     embed = discord.Embed(
         title="🎲 Mini-jeux",
         description=(
-            "**Solo :** `/peche_au_gros`, `/bras_de_fer`, `/concours_nourriture`, "
-            "`/casino machine-a-sous|des|roulette|blackjack`, `/cartes booster|collection|vendre|echanger`\n\n"
-            "**Multijoueurs :** `/regate` (course 2-4), `/chasse_tresor` (coopératif 2-4), "
-            "`/raid_boss` (coopératif 2-4), `/tournoi` (bracket à 4, +8 Notoriété au champion), "
-            "`/bras_de_fer_duel` (1v1)\n\n"
+            "**Universels (toutes factions) :**\n"
+            "Solo : `/peche_au_gros`, `/bras_de_fer`, `/concours_nourriture`, "
+            "`/casino machine-a-sous|des|roulette|blackjack`, `/cartes booster|collection|vendre|echanger`\n"
+            "Multi : `/regate` (2-4), `/chasse_tresor` (2-4), `/raid_boss` (2-4), "
+            "`/tournoi` (4, +8 Notoriété au champion), `/bras_de_fer_duel` (1v1), `/duel`\n\n"
+            "**🏴‍☠️ Exclusifs Pirate — `/pirate`** : `chasse_prime` (traquer un joueur), `abordage` (butin solo), "
+            "`beuverie` (multi 2-4), `pillage_convoi` (coopératif 2-4), `duel_eclair` (réflexes PvP)\n\n"
+            "**⚓ Exclusifs Marine — `/amiraute`** : `patrouille` (solo), `exercice_tir` (réflexes), "
+            "`interrogatoire` (choix d'approche), `bataille_navale` (coopératif 2-4), `inspection` (multi 2-4)\n\n"
+            "**🔥 Exclusifs Révolutionnaire — `/insurrection`** : `briefing` (quiz sur le monde), "
+            "`infiltration` (solo), `sabotage` (coopératif 2-4), `code_secret` (déchiffrage), `recrutement` (choix d'approche)\n\n"
+            "**🏘️ Exclusifs Civil — `/atelier`** : `rapidite` (réflexes), `artisanat` (consomme un ingrédient), "
+            "`negociation` (choix d'approche), `encheres` (multi 2-6, enchères secrètes à l'aveugle), "
+            "`foire` (coopératif 2-6)\n\n"
             "**Boss mondial :** apparition aléatoire et imprévisible sur une mer, ouvert à tous les "
-            "joueurs présents (+3 Notoriété par participant à la victoire). `/boss_mondial statut` pour "
-            "vérifier si un combat est en cours.\n\n"
-            "La plupart fonctionnent avec de vrais boutons interactifs — tente ta chance !"
+            "joueurs présents (+3 Notoriété par participant). `/boss_mondial statut` pour vérifier."
         ),
         color=0xE67E22
     )
