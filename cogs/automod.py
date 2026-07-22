@@ -1,34 +1,10 @@
 import discord
-from discord import app_commands
 from discord.ext import commands
 import re
 import time
 from database.db import get_pool
-from cogs.admin import config_group
 from utils.permissions import member_has_group
 from utils.logging import log_action
-
-automod_group = app_commands.Group(name="automod", description="Gérer les protections automatiques", parent=config_group)
-
-PROTECTIONS = [
-    app_commands.Choice(name="Anti-spam", value="anti_spam"),
-    app_commands.Choice(name="Anti-liens", value="anti_liens"),
-    app_commands.Choice(name="Anti-insultes", value="anti_insultes"),
-    app_commands.Choice(name="Anti-raid", value="anti_raid"),
-    app_commands.Choice(name="Anti-mention", value="anti_mention"),
-    app_commands.Choice(name="Anti-pub (invitations Discord)", value="anti_pub"),
-    app_commands.Choice(name="Anti-alt (comptes récents)", value="anti_alt"),
-    app_commands.Choice(name="Anti-bot", value="anti_bot"),
-]
-
-SEUILS = [
-    app_commands.Choice(name="Nb. messages avant anti-spam", value="spam_msg_limit"),
-    app_commands.Choice(name="Durée anti-spam (secondes)", value="spam_seconds"),
-    app_commands.Choice(name="Nb. membres avant anti-raid", value="raid_join_limit"),
-    app_commands.Choice(name="Durée anti-raid (secondes)", value="raid_seconds"),
-    app_commands.Choice(name="Nb. mentions max par message (hors @everyone/@here)", value="mention_limit"),
-    app_commands.Choice(name="Âge minimum du compte (jours)", value="alt_min_days"),
-]
 
 async def get_config(guild_id: int):
     pool = get_pool()
@@ -38,53 +14,6 @@ async def get_config(guild_id: int):
             await conn.execute("INSERT INTO automod_config (guild_id) VALUES ($1)", guild_id)
             row = await conn.fetchrow("SELECT * FROM automod_config WHERE guild_id = $1", guild_id)
     return row
-
-@automod_group.command(name="activer", description="Activer une protection automatique")
-@app_commands.choices(protection=PROTECTIONS)
-@app_commands.checks.has_permissions(administrator=True)
-async def automod_activer(interaction: discord.Interaction, protection: app_commands.Choice[str]):
-    await get_config(interaction.guild_id)
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        await conn.execute(f"UPDATE automod_config SET {protection.value} = TRUE WHERE guild_id = $1", interaction.guild_id)
-    await interaction.response.send_message(f"✅ **{protection.name}** activé.", ephemeral=True)
-
-@automod_group.command(name="desactiver", description="Désactiver une protection automatique")
-@app_commands.choices(protection=PROTECTIONS)
-@app_commands.checks.has_permissions(administrator=True)
-async def automod_desactiver(interaction: discord.Interaction, protection: app_commands.Choice[str]):
-    await get_config(interaction.guild_id)
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        await conn.execute(f"UPDATE automod_config SET {protection.value} = FALSE WHERE guild_id = $1", interaction.guild_id)
-    await interaction.response.send_message(f"✅ **{protection.name}** désactivé.", ephemeral=True)
-
-@automod_group.command(name="seuil", description="Régler un seuil de l'automod")
-@app_commands.choices(parametre=SEUILS)
-@app_commands.checks.has_permissions(administrator=True)
-async def automod_seuil(interaction: discord.Interaction, parametre: app_commands.Choice[str], valeur: int):
-    await get_config(interaction.guild_id)
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        await conn.execute(f"UPDATE automod_config SET {parametre.value} = $2 WHERE guild_id = $1", interaction.guild_id, valeur)
-    await interaction.response.send_message(f"✅ **{parametre.name}** défini sur **{valeur}**.", ephemeral=True)
-
-@automod_group.command(name="voir", description="Voir l'état de toutes les protections")
-@app_commands.checks.has_permissions(administrator=True)
-async def automod_voir(interaction: discord.Interaction):
-    row = await get_config(interaction.guild_id)
-    embed = discord.Embed(title="🛡️ Automod — État des protections", color=0x2C3E50)
-    for p in PROTECTIONS:
-        etat = "🟢 Activé" if row[p.value] else "🔴 Désactivé"
-        embed.add_field(name=p.name, value=etat, inline=True)
-    embed.add_field(name="⚙️ Seuils", value=(
-        f"Spam : {row['spam_msg_limit']} msg / {row['spam_seconds']}s\n"
-        f"Raid : {row['raid_join_limit']} membres / {row['raid_seconds']}s\n"
-        f"Mentions max (hors @everyone/@here, toujours bloqué) : {row['mention_limit']}\n"
-        f"Âge min. compte : {row['alt_min_days']} jours"
-    ), inline=False)
-    embed.set_footer(text="🌊 One Piece Bot • Automod")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 BAD_WORDS = ["connard", "encule", "pute", "batard", "salope", "pd", "negre", "abruti"]
