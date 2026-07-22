@@ -4,7 +4,6 @@ from discord.ext import commands
 from flask import Flask
 from threading import Thread
 from database.db import init_db
-from cogs.admin import setup_admin_commands, config_group
 from cogs.moderation import setup_moderation_commands
 from cogs.automod import setup_automod_commands
 from cogs.serverlogs import setup_serverlogs_commands
@@ -14,7 +13,6 @@ from cogs.welcome import setup_welcome_commands, WelcomeVerifyView
 from cogs.profil import setup_profil_commands
 from cogs.economie import setup_economie_commands
 from cogs.marche import setup_marche_commands
-import cogs.marche_admin  # noqa: F401
 from cogs.inventaire import setup_inventaire_commands
 from cogs.exploration import setup_exploration_commands
 from cogs.collecte import setup_collecte_commands
@@ -82,7 +80,6 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-setup_admin_commands(bot)
 setup_moderation_commands(bot)
 setup_setup_commands(bot)
 setup_tickets_commands(bot)
@@ -143,7 +140,7 @@ async def on_ready():
     await init_db()
     await setup_automod_commands(bot)
     await setup_serverlogs_commands(bot)
-    await setup_welcome_commands(bot, config_group)
+    await setup_welcome_commands(bot)
     bot.add_view(TicketPanelView())
     bot.add_view(TicketCloseView())
     bot.add_view(WelcomeVerifyView())
