@@ -1,19 +1,15 @@
 import discord
-from discord import app_commands
 from discord.ext import commands
 from database.db import get_pool
-from cogs.admin import config_group
 from utils.logging import log_event
 
-logs_group = app_commands.Group(name="logs", description="Gérer les logs automatiques du serveur", parent=config_group)
-
 TYPES_LOGS = [
-    app_commands.Choice(name="Messages supprimés", value="log_msg_delete"),
-    app_commands.Choice(name="Messages édités", value="log_msg_edit"),
-    app_commands.Choice(name="Entrées / sorties de membres", value="log_join_leave"),
-    app_commands.Choice(name="Création / suppression de salons", value="log_salons"),
-    app_commands.Choice(name="Création / suppression de rôles", value="log_roles"),
-    app_commands.Choice(name="Changements de pseudo", value="log_pseudos"),
+    ("Messages supprimés", "log_msg_delete"),
+    ("Messages édités", "log_msg_edit"),
+    ("Entrées / sorties de membres", "log_join_leave"),
+    ("Création / suppression de salons", "log_salons"),
+    ("Création / suppression de rôles", "log_roles"),
+    ("Changements de pseudo", "log_pseudos"),
 ]
 
 async def get_logs_config(guild_id: int):
@@ -24,37 +20,6 @@ async def get_logs_config(guild_id: int):
             await conn.execute("INSERT INTO logs_config (guild_id) VALUES ($1)", guild_id)
             row = await conn.fetchrow("SELECT * FROM logs_config WHERE guild_id = $1", guild_id)
     return row
-
-@logs_group.command(name="activer", description="Activer un type de log automatique")
-@app_commands.choices(type=TYPES_LOGS)
-@app_commands.checks.has_permissions(administrator=True)
-async def logs_activer(interaction: discord.Interaction, type: app_commands.Choice[str]):
-    await get_logs_config(interaction.guild_id)
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        await conn.execute(f"UPDATE logs_config SET {type.value} = TRUE WHERE guild_id = $1", interaction.guild_id)
-    await interaction.response.send_message(f"✅ Log **{type.name}** activé.", ephemeral=True)
-
-@logs_group.command(name="desactiver", description="Désactiver un type de log automatique")
-@app_commands.choices(type=TYPES_LOGS)
-@app_commands.checks.has_permissions(administrator=True)
-async def logs_desactiver(interaction: discord.Interaction, type: app_commands.Choice[str]):
-    await get_logs_config(interaction.guild_id)
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        await conn.execute(f"UPDATE logs_config SET {type.value} = FALSE WHERE guild_id = $1", interaction.guild_id)
-    await interaction.response.send_message(f"✅ Log **{type.name}** désactivé.", ephemeral=True)
-
-@logs_group.command(name="voir", description="Voir l'état des logs automatiques")
-@app_commands.checks.has_permissions(administrator=True)
-async def logs_voir(interaction: discord.Interaction):
-    row = await get_logs_config(interaction.guild_id)
-    embed = discord.Embed(title="📋 Logs automatiques — État", color=0x2C3E50)
-    for t in TYPES_LOGS:
-        etat = "🟢 Activé" if row[t.value] else "🔴 Désactivé"
-        embed.add_field(name=t.name, value=etat, inline=True)
-    embed.set_footer(text="🌊 One Piece Bot • Logs")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 class ServerLogsListener(commands.Cog):
