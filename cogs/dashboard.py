@@ -3,6 +3,7 @@ from discord import app_commands
 from database.db import get_pool
 from cogs.admin import SALON_DEFINITIONS
 from cogs.boss_mondial import get_active_boss, force_spawn_boss
+from cogs.welcome import get_welcome_config, WelcomeVerifyView
 
 AUTOMOD_COLUMNS = ["anti_spam", "anti_liens", "anti_insultes", "anti_raid", "anti_mention", "anti_pub", "anti_alt", "anti_bot"]
 LABEL_BY_COLUMN = {col: label for label, col in SALON_DEFINITIONS}
@@ -11,7 +12,7 @@ SALON_CATEGORIES = {
     "serveur": ("🛠️ Serveur & Modération", ["salon_annonces", "salon_reglement", "salon_bienvenue", "salon_logs", "salon_moderation", "salon_rapports", "salon_general"]),
     "economie": ("💰 Économie", ["salon_economie", "salon_boutique"]),
     "aventure": ("⚔️ Aventure & Combat", ["salon_exploration", "salon_combat", "salon_duel", "salon_peche", "salon_casino", "salon_entrainement"]),
-    "organisations": ("🏴‍☠️ Organisations", ["salon_equipages", "salon_marine", "salon_revolutionnaires", "salon_guilde"]),
+    "organisations": ("🏴 Organisations", ["salon_equipages", "salon_marine", "salon_revolutionnaires", "salon_guilde"]),
     "progression": ("📈 Progression", ["salon_classements", "salon_quetes", "salon_succes", "salon_recompenses", "salon_carnet", "salon_cartes"]),
     "social": ("🎉 Social & Création", ["salon_taverne", "salon_regates", "salon_tresor", "salon_creation"]),
 }
@@ -245,7 +246,7 @@ class LangueSelect(discord.ui.Select):
     def __init__(self):
         options = [
             discord.SelectOption(label="Français", value="fr", emoji="🇫🇷"),
-            discord.SelectOption(label="English", value="en", emoji="🇬🇧"),
+            discord.SelectOption(label="English", value="en", emoji="🇬"),
         ]
         super().__init__(placeholder="Choisis la langue du bot...", options=options)
 
@@ -506,21 +507,8 @@ class DashboardLogsView(discord.ui.View):
 
 # ===== BIENVENUE =====
 
-async def ensure_welcome_row(guild_id: int):
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        await conn.execute("INSERT INTO welcome_config (guild_id) VALUES ($1) ON CONFLICT (guild_id) DO NOTHING", guild_id)
-
-
-async def get_welcome_row(guild_id: int):
-    await ensure_welcome_row(guild_id)
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        return await conn.fetchrow("SELECT * FROM welcome_config WHERE guild_id=$1", guild_id)
-
-
 async def build_bienvenue_embed(guild_id: int):
-    row = await get_welcome_row(guild_id)
+    row = await get_welcome_config(guild_id)
     role_txt = f"<@&{row['auto_role_id']}>" if row["auto_role_id"] else "Aucun"
     verif_txt = "✅ Activée" if row["verification_enabled"] else "❌ Désactivée"
     bg_txt = "✅ Définie" if row["background_url"] else "❌ Aucune"
@@ -625,6 +613,19 @@ class WelcomeBackgroundButton(discord.ui.Button):
         await interaction.response.send_modal(WelcomeBackgroundModal(self.current_url))
 
 
+class WelcomePosterPanneauButton(discord.ui.Button):
+    def __init__(self, auto_role_id):
+        self.auto_role_id = auto_role_id
+        super().__init__(label="Poster le panneau de vérification ici", emoji="📌", style=discord.ButtonStyle.success)
+
+    async def callback(self, interaction: discord.Interaction):
+        if not self.auto_role_id:
+            await interaction.response.send_message("⚠️ Configure d'abord un rôle automatique avant de poster le panneau.", ephemeral=True)
+            return
+        await interaction.channel.send(view=WelcomeVerifyView())
+        await interaction.response.send_message("✅ Panneau de vérification posté dans ce salon (poste-le idéalement sous ton règlement).", ephemeral=True)
+
+
 class DashboardBienvenueView(discord.ui.View):
     def __init__(self, welcome_row):
         super().__init__(timeout=180)
@@ -632,11 +633,12 @@ class DashboardBienvenueView(discord.ui.View):
         self.add_item(WelcomeRoleButton())
         self.add_item(WelcomeVerificationToggleButton(welcome_row["verification_enabled"]))
         self.add_item(WelcomeBackgroundButton(welcome_row["background_url"]))
+        self.add_item(WelcomePosterPanneauButton(welcome_row["auto_role_id"]))
         self.add_item(DashboardBackHomeButton())
 
     @classmethod
     async def create(cls, guild_id):
-        row = await get_welcome_row(guild_id)
+        row = await get_welcome_config(guild_id)
         return cls(row)
 
 
@@ -1140,6 +1142,59 @@ class DashboardPermissionsView(discord.ui.View):
         self.add_item(DashboardBackHomeButton())
 
 
+# ===== PARAMÈTRES AVANCÉS (Reset global) =====
+
+class ResetGlobalConfirmButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Confirmer la réinitialisation totale", emoji="💥", style=discord.ButtonStyle.danger)
+
+    async def callback(self, interaction: discord.Interaction):
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("DELETE FROM guild_config WHERE guild_id = $1", interaction.guild_id)
+        embed = discord.Embed(
+            title="💥 Configuration réinitialisée",
+            description="Tous les salons et la langue ont été remis à zéro. Les autres réglages (automod, logs, bienvenue, marché) ne sont pas affectés.",
+            color=0x27AE60
+        )
+        embed.set_footer(text="🌊 One Piece Bot • Dashboard")
+        await interaction.response.edit_message(embed=embed, view=None)
+
+
+class ResetGlobalCancelButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Annuler", style=discord.ButtonStyle.secondary)
+
+    async def callback(self, interaction: discord.Interaction):
+        embed = discord.Embed(title="⚙️ Paramètres avancés", description="Réinitialisation annulée.", color=0x2C3E50)
+        embed.set_footer(text="🌊 One Piece Bot • Dashboard")
+        await interaction.response.edit_message(embed=embed, view=DashboardAvanceView())
+
+
+class ResetGlobalButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Réinitialiser toute la config des salons", emoji="💥", style=discord.ButtonStyle.danger)
+
+    async def callback(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="⚠️ Confirmation requise",
+            description="Es-tu sûr de vouloir **réinitialiser tous les salons configurés** et la langue ? Cette action est irréversible (les autres réglages restent intacts).",
+            color=0xC0392B
+        )
+        embed.set_footer(text="🌊 One Piece Bot • Dashboard")
+        view = discord.ui.View(timeout=60)
+        view.add_item(ResetGlobalConfirmButton())
+        view.add_item(ResetGlobalCancelButton())
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
+class DashboardAvanceView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+        self.add_item(ResetGlobalButton())
+        self.add_item(DashboardBackHomeButton())
+
+
 # ===== ACCUEIL (menu principal) =====
 
 CATEGORIES = {
@@ -1152,6 +1207,7 @@ CATEGORIES = {
     "boss": "👑 Boss mondial",
     "permissions": "🔑 Permissions",
     "langue": "🌐 Langue",
+    "avance": "⚙️ Paramètres avancés",
 }
 
 
@@ -1189,6 +1245,10 @@ class DashboardCategorySelect(discord.ui.Select):
         elif self.values[0] == "permissions":
             embed = await build_permissions_embed(interaction.guild_id)
             await interaction.response.edit_message(embed=embed, view=DashboardPermissionsView())
+        elif self.values[0] == "avance":
+            embed = discord.Embed(title="⚙️ Paramètres avancés", description="Actions de maintenance globales.", color=0x2C3E50)
+            embed.set_footer(text="🌊 One Piece Bot • Dashboard")
+            await interaction.response.edit_message(embed=embed, view=DashboardAvanceView())
 
 
 class DashboardHomeView(discord.ui.View):
