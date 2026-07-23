@@ -41,6 +41,16 @@ async def verifier_pirate(interaction: discord.Interaction):
     return player
 
 
+def get_ko_restant(player) -> int:
+    """Retourne le nombre de minutes de K.O. restantes, ou 0 si pas K.O."""
+    if not player["ko_jusqua"]:
+        return 0
+    now = datetime.datetime.utcnow()
+    if player["ko_jusqua"] <= now:
+        return 0
+    return int((player["ko_jusqua"] - now).total_seconds() // 60) + 1
+
+
 async def notifier_progression_hors_combat(interaction, uid, member):
     """Vérifie éveil de fruit, Haki des Rois et paliers d'XP caché pour un joueur donné, hors du flux de /combattre."""
     if not member:
@@ -78,6 +88,10 @@ async def pirate_chasse_prime(interaction: discord.Interaction, cible: discord.M
     await interaction.response.defer()
     player = await verifier_pirate(interaction)
     if player is None:
+        return
+    ko_restant = get_ko_restant(player)
+    if ko_restant:
+        await interaction.followup.send(f"😵 Tu es encore K.O. pendant **{ko_restant} minute(s)**, trop blessé pour traquer qui que ce soit. Repose-toi ou fais appel à un Médecin !")
         return
     if cible.id == interaction.user.id or cible.bot:
         await interaction.followup.send("Choix invalide 🙃")
@@ -156,6 +170,10 @@ async def pirate_abordage(interaction: discord.Interaction):
     player = await verifier_pirate(interaction)
     if player is None:
         return
+    ko_restant = get_ko_restant(player)
+    if ko_restant:
+        await interaction.followup.send(f"😵 Tu es encore K.O. pendant **{ko_restant} minute(s)**, trop blessé pour aborder un navire. Repose-toi ou fais appel à un Médecin !")
+        return
 
     key = (interaction.guild_id, interaction.user.id)
     now = datetime.datetime.utcnow()
@@ -203,7 +221,7 @@ async def pirate_abordage(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 
-# ===== BEUVERIE DE TAVERNE =====
+# ===== BEUVERIE DE TAVERNE (pas de risque physique, aucune vérif K.O.) =====
 
 class BeuverieJoinView(discord.ui.View):
     def __init__(self, guild_id, hote: discord.Member):
@@ -344,6 +362,9 @@ class PillageJoinView(discord.ui.View):
         if player is None or player["faction"] != "Pirate":
             await interaction.response.send_message("⛔ Réservé aux Pirates ayant un personnage.", ephemeral=True)
             return
+        if get_ko_restant(player):
+            await interaction.response.send_message("😵 Tu es K.O., trop blessé pour rejoindre un raid pour l'instant.", ephemeral=True)
+            return
         self.participants[interaction.user.id] = interaction.user
         await interaction.response.edit_message(embed=self.build_embed(), view=self)
 
@@ -450,6 +471,10 @@ async def pirate_pillage_convoi(interaction: discord.Interaction):
     player = await verifier_pirate(interaction)
     if player is None:
         return
+    ko_restant = get_ko_restant(player)
+    if ko_restant:
+        await interaction.followup.send(f"😵 Tu es encore K.O. pendant **{ko_restant} minute(s)**, trop blessé pour organiser un raid. Repose-toi ou fais appel à un Médecin !")
+        return
 
     view = PillageJoinView(interaction.guild_id, interaction.user)
     msg = await interaction.followup.send(embed=view.build_embed(), view=view)
@@ -551,12 +576,19 @@ async def pirate_duel_eclair(interaction: discord.Interaction, adversaire: disco
     player = await verifier_pirate(interaction)
     if player is None:
         return
+    ko_restant = get_ko_restant(player)
+    if ko_restant:
+        await interaction.followup.send(f"😵 Tu es encore K.O. pendant **{ko_restant} minute(s)**, trop blessé pour un duel. Repose-toi ou fais appel à un Médecin !")
+        return
     if adversaire.id == interaction.user.id or adversaire.bot:
         await interaction.followup.send("Choix invalide 🙃")
         return
     adversaire_data = await get_player(interaction.guild_id, adversaire.id)
     if adversaire_data is None or adversaire_data["faction"] != "Pirate":
         await interaction.followup.send(f"⛔ {adversaire.display_name} doit être Pirate et avoir un personnage.")
+        return
+    if get_ko_restant(adversaire_data):
+        await interaction.followup.send(f"⛔ {adversaire.display_name} est K.O. pour l'instant, pas en état de se battre.")
         return
 
     view = DuelEclairView(interaction.guild_id, interaction.user, adversaire)
