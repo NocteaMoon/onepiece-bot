@@ -8,6 +8,7 @@ from utils.players import get_player, add_xp
 from utils.channel_check import require_salon
 from utils.reputation import add_reputation_faction, MONTANT_COMBAT_VICTOIRE
 from utils.notoriete import add_notoriete, MONTANT_MINIJEU_COOP
+from utils.quetes import increment_quest_progress
 from data.civil_flavor import OBJETS_ENCHERES, NPCS_NEGOCIATION, RARETE_RECOMPENSE_ARTISANAT
 
 atelier_group = app_commands.Group(name="atelier", description="Mini-jeux exclusifs à la faction Civil")
@@ -84,6 +85,7 @@ class RapiditeView(discord.ui.View):
             await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", self.guild_id, self.user_id, gain)
         await add_xp(self.guild_id, self.user_id, 12, 5)
         await add_reputation_faction(self.guild_id, self.user_id, "Civil", MONTANT_COMBAT_VICTOIRE)
+        await increment_quest_progress(self.guild_id, self.user_id, "civil_minijeu")
 
         embed = discord.Embed(title="⏱️ Défi de rapidité", description=f"{texte}\n\n**+{gain}฿**", color=couleur)
         embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Civils")
@@ -217,6 +219,7 @@ async def atelier_artisanat(interaction: discord.Interaction, ingredient: int):
         await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, interaction.user.id, gain)
     await add_xp(interaction.guild_id, interaction.user.id, 15 + (15 if chef_oeuvre else 0), 6)
     await add_reputation_faction(interaction.guild_id, interaction.user.id, "Civil", MONTANT_COMBAT_VICTOIRE)
+    await increment_quest_progress(interaction.guild_id, interaction.user.id, "civil_minijeu")
 
     if chef_oeuvre:
         embed = discord.Embed(
@@ -264,6 +267,7 @@ class NegociationView(discord.ui.View):
         reussi = random.random() < chance
 
         pool = get_pool()
+        await increment_quest_progress(self.guild_id, self.user_id, "civil_minijeu")
         if reussi:
             gain = random.randint(b_min, b_max)
             async with pool.acquire() as conn:
@@ -455,6 +459,7 @@ class EncheresBidView(discord.ui.View):
             )
         await add_xp(self.guild_id, gagnant_id, 20, 8)
         await add_reputation_faction(self.guild_id, gagnant_id, "Civil", MONTANT_COMBAT_VICTOIRE)
+        await increment_quest_progress(self.guild_id, gagnant_id, "civil_minijeu")
 
         profit = self.valeur - bid_final
         resultat_txt = f"un joli bénéfice de **+{profit:,}฿**" if profit >= 0 else f"une perte sèche de **{profit:,}฿**"
@@ -605,6 +610,7 @@ class FoireContributionView(discord.ui.View):
                 await add_xp(self.guild_id, uid, 25, 10)
                 await add_reputation_faction(self.guild_id, uid, "Civil", MONTANT_COMBAT_VICTOIRE)
                 await add_notoriete(self.guild_id, uid, MONTANT_MINIJEU_COOP)
+                await increment_quest_progress(self.guild_id, uid, "civil_minijeu")
                 member = interaction.guild.get_member(uid)
                 lignes.append(f"{member.mention if member else uid} : +{part}฿")
             embed = self.build_embed("🎉 La foire est un franc succès grâce à la contribution de tous !\n\n" + "\n".join(lignes))
