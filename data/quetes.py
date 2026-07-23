@@ -92,4 +92,32 @@ OBJECTIFS = {
         "berrys_per": 27, "xp_per": 10,
         "metier_requis": "Archéologue",
     },
+    "pirate_minijeu": {
+        "label": "Participer à {cible} défi(s) Pirate (/pirate)",
+        "daily_min": 2, "daily_max": 3,
+        "weekly_min": 6, "weekly_max": 10,
+        "berrys_per": 20, "xp_per": 8,
+        "faction_requise": "Pirate",
+    },
+    "marine_minijeu": {
+        "label": "Participer à {cible} exercice(s) Marine (/amiraute)",
+        "daily_min": 2, "daily_max": 3,
+        "weekly_min": 6, "weekly_max": 10,
+        "berrys_per": 20, "xp_per": 8,
+        "faction_requise": "Marine",
+    },
+    "revolution_minijeu": {
+        "label": "Participer à {cible} opération(s) Révolutionnaire (/insurrection)",
+        "daily_min": 2, "daily_max": 3,
+        "weekly_min": 6, "weekly_max": 10,
+        "berrys_per": 20, "xp_per": 8,
+        "faction_requise": "Révolutionnaire",
+    },
+    "civil_minijeu": {
+        "label": "Participer à {cible} activité(s) Civile (/atelier)",
+        "daily_min": 2, "daily_max": 3,
+        "weekly_min": 6, "weekly_max": 10,
+        "berrys_per": 20, "xp_per": 8,
+        "faction_requise": "Civil",
+    },
 }
