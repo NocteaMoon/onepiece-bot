@@ -3,6 +3,8 @@ from database.db import get_pool
 MONTANT_BOSS_MONDIAL = 3
 MONTANT_TOURNOI = 8
 MONTANT_SUCCES = 2
+MONTANT_COLLECTION = 3
+MONTANT_MINIJEU_COOP = 2
 
 
 async def add_notoriete(guild_id: int, user_id: int, montant: int):
