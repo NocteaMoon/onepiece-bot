@@ -1081,6 +1081,48 @@ class JoueurXPButton(discord.ui.Button):
         await interaction.response.send_modal(JoueurXPModal(self.membre))
 
 
+class JoueurNiveauModal(discord.ui.Modal, title="🧪 Définir le niveau (test)"):
+    def __init__(self, membre):
+        super().__init__()
+        self.membre = membre
+        self.niveau = discord.ui.TextInput(label="Niveau exact à définir", placeholder="Ex : 15", max_length=4)
+        self.add_item(self.niveau)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            niveau_val = int(self.niveau.value)
+        except ValueError:
+            await interaction.response.send_message("⛔ Doit être un nombre entier.", ephemeral=True)
+            return
+        if niveau_val < 1:
+            await interaction.response.send_message("⛔ Le niveau doit être au moins 1.", ephemeral=True)
+            return
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE players SET niveau = $3, xp = 0 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id, niveau_val)
+        embed = discord.Embed(
+            title="✅ Niveau défini (test)",
+            description=(
+                f"{self.membre.mention} est maintenant **niveau {niveau_val}** (XP remise à 0).\n\n"
+                f"⚠️ Les stats de combat (Force/Défense/...) ne sont **pas recalculées automatiquement**, "
+                f"seul le niveau change — pratique pour tester les accès liés au niveau (mers, quêtes...), "
+                f"moins pour tester l'équilibrage du combat à ce niveau précis."
+            ),
+            color=0x27AE60
+        )
+        embed.set_footer(text="🌊 One Piece Bot • Dashboard • Outil de test")
+        await interaction.response.edit_message(embed=embed, view=None)
+
+
+class JoueurNiveauButton(discord.ui.Button):
+    def __init__(self, membre):
+        self.membre = membre
+        super().__init__(label="Définir le niveau", emoji="📊", style=discord.ButtonStyle.danger)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(JoueurNiveauModal(self.membre))
+
+
 class JoueurBerrysModal(discord.ui.Modal, title="🧪 Ajouter des Berrys (test)"):
     def __init__(self, membre):
         super().__init__()
@@ -1109,6 +1151,37 @@ class JoueurBerrysButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.send_modal(JoueurBerrysModal(self.membre))
+
+
+class JoueurRetirerBerrysModal(discord.ui.Modal, title="🧪 Retirer des Berrys (test)"):
+    def __init__(self, membre):
+        super().__init__()
+        self.membre = membre
+        self.montant = discord.ui.TextInput(label="Montant de Berrys à retirer", max_length=8)
+        self.add_item(self.montant)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            montant = int(self.montant.value)
+        except ValueError:
+            await interaction.response.send_message("⛔ Doit être un nombre entier.", ephemeral=True)
+            return
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE players SET berrys = GREATEST(0, berrys - $3) WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id, montant)
+            row = await conn.fetchrow("SELECT berrys FROM players WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id)
+        embed = discord.Embed(title="✅ Berrys retirés (test)", description=f"{self.membre.mention} a maintenant **{row['berrys']:,}฿**.", color=0x27AE60)
+        embed.set_footer(text="🌊 One Piece Bot • Dashboard • Outil de test")
+        await interaction.response.edit_message(embed=embed, view=None)
+
+
+class JoueurRetirerBerrysButton(discord.ui.Button):
+    def __init__(self, membre):
+        self.membre = membre
+        super().__init__(label="Retirer des Berrys", emoji="💸", style=discord.ButtonStyle.danger)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(JoueurRetirerBerrysModal(self.membre))
 
 
 class JoueurTeleportSelect(discord.ui.Select):
@@ -1154,7 +1227,9 @@ class DashboardJoueurActionsView(discord.ui.View):
     def __init__(self, membre):
         super().__init__(timeout=180)
         self.add_item(JoueurXPButton(membre))
+        self.add_item(JoueurNiveauButton(membre))
         self.add_item(JoueurBerrysButton(membre))
+        self.add_item(JoueurRetirerBerrysButton(membre))
         self.add_item(JoueurTeleportButton(membre))
         self.add_item(JoueurFactionButton(membre))
         self.add_item(JoueurResetButton(membre))
