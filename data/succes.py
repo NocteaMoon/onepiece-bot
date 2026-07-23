@@ -60,4 +60,24 @@ FAMILLES = {
         (5, 700, "Chasseur de colosses"),
         (15, 1500, "Fléau des boss mondiaux"),
     ]),
+    "notoriete": ("🌟 Notoriété", "notoriete_min", [
+        (10, 50, "Un nom qui circule"),
+        (30, 100, "Réputation grandissante"),
+        (75, 200, "Connu sur les quatre mers"),
+        (150, 400, "Figure respectée"),
+        (300, 800, "Légende vivante"),
+    ]),
+    "reputation": ("🤝 Réputation", "reputation_max", [
+        (20, 40, "Bien vu des siens"),
+        (50, 90, "Pilier de sa faction"),
+        (100, 180, "Voix qui compte"),
+        (200, 350, "Figure de proue"),
+    ]),
+    "cartes": ("🃏 Collection de cartes", "cartes_uniques_min", [
+        (10, 60, "Petit collectionneur"),
+        (30, 150, "Collectionneur assidu"),
+        (60, 300, "Collectionneur chevronné"),
+        (100, 600, "Collection impressionnante"),
+        (143, 1200, "Collection complète"),
+    ]),
 }
