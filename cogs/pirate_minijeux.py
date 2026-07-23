@@ -13,6 +13,7 @@ from utils.fruits import check_eveil
 from utils.haki import check_eveil_rois
 from utils.xp_cache import check_xp_cache_paliers, STAT_LABELS
 from utils.notoriete import add_notoriete, MONTANT_MINIJEU_COOP
+from utils.quetes import increment_quest_progress
 from data.pirate_flavor import LIEUX_CHASSE_PRIME, CONVOIS_ABORDAGE, ROUNDS_BEUVERIE, GROS_CONVOIS_PILLAGE
 
 pirate_group = app_commands.Group(name="pirate", description="Mini-jeux exclusifs à la faction Pirate")
@@ -116,6 +117,8 @@ async def pirate_chasse_prime(interaction: discord.Interaction, cible: discord.M
         await conn.execute("UPDATE players SET endurance = endurance - $3 WHERE guild_id=$1 AND user_id=$2",
                             interaction.guild_id, interaction.user.id, COUT_CHASSE_PRIME)
 
+    await increment_quest_progress(interaction.guild_id, interaction.user.id, "pirate_minijeu")
+
     if score_a > score_c:
         vol = max(20, round(cible_data["prime"] * random.uniform(0.05, 0.12)))
         async with pool.acquire() as conn:
@@ -172,6 +175,8 @@ async def pirate_abordage(interaction: discord.Interaction):
     reussi = random.random() < chance
 
     pool = get_pool()
+    await increment_quest_progress(interaction.guild_id, interaction.user.id, "pirate_minijeu")
+
     if reussi:
         gain = random.randint(b_min, b_max)
         async with pool.acquire() as conn:
@@ -291,6 +296,8 @@ async def pirate_beuverie(interaction: discord.Interaction):
         await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, gagnant.id, pot)
     await add_xp(interaction.guild_id, gagnant.id, 25, 10)
     await add_reputation_faction(interaction.guild_id, gagnant.id, "Pirate", MONTANT_COMBAT_VICTOIRE)
+    for m in membres:
+        await increment_quest_progress(interaction.guild_id, m.id, "pirate_minijeu")
 
     embed = discord.Embed(
         title="🍺 Beuverie terminée !",
@@ -407,6 +414,7 @@ class PillageCombatView(discord.ui.View):
                 await add_xp(self.guild_id, uid, 30, 12)
                 await add_reputation_faction(self.guild_id, uid, "Pirate", MONTANT_COMBAT_VICTOIRE)
                 await add_notoriete(self.guild_id, uid, MONTANT_MINIJEU_COOP)
+                await increment_quest_progress(self.guild_id, uid, "pirate_minijeu")
                 member = interaction.guild.get_member(uid)
                 lignes.append(f"{member.mention if member else uid} : +{part}฿")
             embed = self.build_embed(f"🏆 **{self.description}** est pillé avec succès !\n\n" + "\n".join(lignes))
@@ -500,6 +508,8 @@ class DuelEclairView(discord.ui.View):
             await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", self.guild_id, gagnant.id, gain)
         await add_xp(self.guild_id, gagnant.id, 15, 6)
         await add_reputation_faction(self.guild_id, gagnant.id, "Pirate", MONTANT_COMBAT_VICTOIRE)
+        await increment_quest_progress(self.guild_id, self.p1.id, "pirate_minijeu")
+        await increment_quest_progress(self.guild_id, self.p2.id, "pirate_minijeu")
 
         embed = discord.Embed(title="🗡️ Duel au sabre éclair", description=f"{texte}\n\n+{gain}฿ pour le vainqueur !", color=0x27AE60 if self.pret else 0x7F0000)
         embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Pirates")
