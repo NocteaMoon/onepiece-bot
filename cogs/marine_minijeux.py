@@ -46,6 +46,16 @@ async def verifier_marine(interaction: discord.Interaction):
     return player
 
 
+def get_ko_restant(player) -> int:
+    """Retourne le nombre de minutes de K.O. restantes, ou 0 si pas K.O."""
+    if not player["ko_jusqua"]:
+        return 0
+    now = datetime.datetime.utcnow()
+    if player["ko_jusqua"] <= now:
+        return 0
+    return int((player["ko_jusqua"] - now).total_seconds() // 60) + 1
+
+
 async def notifier_progression_hors_combat(interaction, uid, member):
     if not member:
         return
@@ -73,7 +83,7 @@ async def notifier_progression_hors_combat(interaction, uid, member):
         ))
 
 
-# ===== PATROUILLE =====
+# ===== PATROUILLE (pas de risque physique, aucune vérif K.O.) =====
 
 @amiraute_group.command(name="patrouille", description="Effectuer une ronde de patrouille (Marine)")
 @require_salon("salon_taverne")
@@ -119,7 +129,7 @@ async def amiraute_patrouille(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 
-# ===== EXERCICE DE TIR =====
+# ===== EXERCICE DE TIR (pas de risque physique, aucune vérif K.O.) =====
 
 class ExerciceTirView(discord.ui.View):
     def __init__(self, guild_id, user_id):
@@ -235,7 +245,7 @@ async def amiraute_exercice_tir(interaction: discord.Interaction):
     asyncio.create_task(view.lancer_signal())
 
 
-# ===== INTERROGATOIRE =====
+# ===== INTERROGATOIRE (pas de risque physique, aucune vérif K.O.) =====
 
 APPROCHES = {
     "intimidation": ("Intimidation", 0.55, (20, 45)),
@@ -339,7 +349,7 @@ async def amiraute_interrogatoire(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed, view=view)
 
 
-# ===== BATAILLE NAVALE (chasse au navire pirate, coopératif) =====
+# ===== BATAILLE NAVALE (K.O. bloqué — combat réel) =====
 
 class BatailleJoinView(discord.ui.View):
     def __init__(self, guild_id, hote: discord.Member):
@@ -374,6 +384,9 @@ class BatailleJoinView(discord.ui.View):
         player = await get_player(self.guild_id, interaction.user.id)
         if player is None or player["faction"] != "Marine":
             await interaction.response.send_message("⛔ Réservé aux Marines ayant un personnage.", ephemeral=True)
+            return
+        if get_ko_restant(player):
+            await interaction.response.send_message("😵 Tu es K.O., trop blessé pour rejoindre une unité pour l'instant.", ephemeral=True)
             return
         self.participants[interaction.user.id] = interaction.user
         await interaction.response.edit_message(embed=self.build_embed(), view=self)
@@ -481,6 +494,10 @@ async def amiraute_bataille_navale(interaction: discord.Interaction):
     player = await verifier_marine(interaction)
     if player is None:
         return
+    ko_restant = get_ko_restant(player)
+    if ko_restant:
+        await interaction.followup.send(f"😵 Tu es encore K.O. pendant **{ko_restant} minute(s)**, trop blessé pour lancer une bataille. Repose-toi ou fais appel à un Médecin !")
+        return
 
     view = BatailleJoinView(interaction.guild_id, interaction.user)
     msg = await interaction.followup.send(embed=view.build_embed(), view=view)
@@ -501,7 +518,7 @@ async def amiraute_bataille_navale(interaction: discord.Interaction):
     combat_view.message = combat_msg
 
 
-# ===== INSPECTION DE GRADE =====
+# ===== INSPECTION DE GRADE (pas de risque physique, aucune vérif K.O.) =====
 
 class InspectionJoinView(discord.ui.View):
     def __init__(self, guild_id, hote: discord.Member):
