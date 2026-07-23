@@ -2,6 +2,7 @@ import random
 import datetime
 from database.db import get_pool
 from utils.titres import unlock_titre
+from utils.notoriete import add_notoriete, MONTANT_COLLECTION
 from data.cartes_monde import CARTES_MONDE
 from data.cartes_creatures import CARTES_CREATURES
 from data.cartes_tresors import CARTES_TRESORS
@@ -9,8 +10,6 @@ from data.cartes_artisanat import CARTES_ARTISANAT
 from data.cartes_figures import CARTES_FIGURES
 from data.cartes_legendes import CARTES_LEGENDES
 
-# Pour ajouter une nouvelle catégorie plus tard : créer data/cartes_xxx.py,
-# l'importer ci-dessus, puis ajouter une ligne ici. Aucun autre code à toucher.
 CATEGORIES = {
     "monde": ("🗺️ Monde", CARTES_MONDE),
     "creatures": ("👹 Créatures", CARTES_CREATURES),
@@ -20,7 +19,6 @@ CATEGORIES = {
     "legendes": ("📜 Légendes & Organisations", CARTES_LEGENDES),
 }
 
-# Récompense de complétion par catégorie : (berrys, titre_debloque)
 COMPLETION_REWARDS = {
     "monde": (1000, "Cartographe du Monde"),
     "creatures": (1200, "Dompteur de Créatures"),
@@ -34,9 +32,6 @@ RARETE_ORDRE = ["Commun", "Rare", "Épique", "Légendaire"]
 RARETE_EMOJIS = {"Commun": "⚪", "Rare": "🔵", "Épique": "🟣", "Légendaire": "🟡"}
 RARETE_VENTE = {"Commun": 12, "Rare": 35, "Épique": 90, "Légendaire": 250}
 
-# Aucune garantie de rareté : chaque carte d'un booster est tirée indépendamment
-# selon ces poids. Plus de cartes par booster aux paliers hauts pour compenser
-# l'absence de garantie, mais la malchance reste toujours possible.
 BOOSTERS = {
     "commun": {"nom": "Booster Commun", "prix": 80, "cartes": 3,
                "poids": {"Commun": 70, "Rare": 25, "Épique": 5, "Légendaire": 0}},
@@ -65,7 +60,6 @@ def get_card(code):
 
 
 def tirer_booster(booster_key):
-    """Tirage 100% indépendant, carte par carte, sans aucune garantie de rareté minimale."""
     config = BOOSTERS[booster_key]
     toutes = get_all_cards()
     par_rarete = {r: [c for c in toutes if c["rarete"] == r] for r in RARETE_ORDRE}
@@ -80,7 +74,6 @@ def tirer_booster(booster_key):
 
 
 async def add_card(guild_id: int, user_id: int, code: str, qty: int = 1) -> bool:
-    """Ajoute une carte, retourne True si c'est une toute nouvelle carte pour ce joueur."""
     pool = get_pool()
     async with pool.acquire() as conn:
         existing = await conn.fetchrow(
@@ -178,9 +171,9 @@ async def claim_completion(guild_id: int, user_id: int, categorie_key: str):
             await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", guild_id, user_id, berrys)
     if titre:
         await unlock_titre(guild_id, user_id, titre)
+    await add_notoriete(guild_id, user_id, MONTANT_COLLECTION)
     return berrys, titre
 
 
 def is_echange_ouvert() -> bool:
-    # Mardi = 1, Dimanche = 6 (lundi = 0 en Python)
     return datetime.datetime.utcnow().weekday() in (1, 6)
