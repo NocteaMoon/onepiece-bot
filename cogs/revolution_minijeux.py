@@ -12,6 +12,7 @@ from utils.fruits import check_eveil
 from utils.haki import check_eveil_rois
 from utils.xp_cache import check_xp_cache_paliers, STAT_LABELS
 from utils.notoriete import add_notoriete, MONTANT_MINIJEU_COOP
+from utils.quetes import increment_quest_progress
 from data.revolution_flavor import (
     QUIZ_QUESTIONS, LIEUX_INFILTRATION, CIBLES_SABOTAGE, MOTS_CODE_SECRET, NPCS_RECRUTEMENT
 )
@@ -116,6 +117,7 @@ class BriefingButton(discord.ui.Button):
                 c.style = discord.ButtonStyle.danger
 
         pool = get_pool()
+        await increment_quest_progress(view.guild_id, view.user_id, "revolution_minijeu")
         if self.index == view.index_correct:
             gain = random.randint(25, 50)
             async with pool.acquire() as conn:
@@ -189,6 +191,8 @@ async def insurrection_infiltration(interaction: discord.Interaction):
     async with pool.acquire() as conn:
         await conn.execute("UPDATE players SET endurance = endurance - $3 WHERE guild_id=$1 AND user_id=$2",
                             interaction.guild_id, interaction.user.id, COUT_INFILTRATION)
+
+    await increment_quest_progress(interaction.guild_id, interaction.user.id, "revolution_minijeu")
 
     if random.random() < chance:
         gain = random.randint(30, 70)
@@ -320,6 +324,7 @@ class SabotageCombatView(discord.ui.View):
                 await add_xp(self.guild_id, uid, 30, 12)
                 await add_reputation_faction(self.guild_id, uid, "Révolutionnaire", MONTANT_COMBAT_VICTOIRE)
                 await add_notoriete(self.guild_id, uid, MONTANT_MINIJEU_COOP)
+                await increment_quest_progress(self.guild_id, uid, "revolution_minijeu")
                 member = interaction.guild.get_member(uid)
                 lignes.append(f"{member.mention if member else uid} : +{part}฿")
             embed = self.build_embed(f"🏆 **{self.description}** est neutralisé avec succès !\n\n" + "\n".join(lignes))
@@ -388,6 +393,7 @@ class CodeSecretModal(discord.ui.Modal, title="Déchiffrer le code"):
 
     async def on_submit(self, interaction: discord.Interaction):
         pool = get_pool()
+        await increment_quest_progress(self.guild_id, self.user_id, "revolution_minijeu")
         if self.reponse.value.strip().upper() == self.mot_original:
             gain = random.randint(35, 65)
             async with pool.acquire() as conn:
@@ -478,6 +484,7 @@ class RecrutementView(discord.ui.View):
         reussi = random.random() < chance
 
         pool = get_pool()
+        await increment_quest_progress(self.guild_id, self.user_id, "revolution_minijeu")
         if reussi:
             gain = random.randint(b_min, b_max)
             async with pool.acquire() as conn:
