@@ -45,6 +45,16 @@ async def verifier_revolutionnaire(interaction: discord.Interaction):
     return player
 
 
+def get_ko_restant(player) -> int:
+    """Retourne le nombre de minutes de K.O. restantes, ou 0 si pas K.O."""
+    if not player["ko_jusqua"]:
+        return 0
+    now = datetime.datetime.utcnow()
+    if player["ko_jusqua"] <= now:
+        return 0
+    return int((player["ko_jusqua"] - now).total_seconds() // 60) + 1
+
+
 async def notifier_progression_hors_combat(interaction, uid, member):
     if not member:
         return
@@ -83,7 +93,7 @@ def encoder_cesar(mot: str, decalage: int) -> str:
     return resultat
 
 
-# ===== BRIEFING (QUIZ) =====
+# ===== BRIEFING (QUIZ) — pas de risque physique, aucune vérif K.O. =====
 
 class BriefingView(discord.ui.View):
     def __init__(self, guild_id, user_id, choix, index_correct):
@@ -159,7 +169,7 @@ async def insurrection_briefing(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed, view=view)
 
 
-# ===== INFILTRATION =====
+# ===== INFILTRATION (K.O. bloqué) =====
 
 @insurrection_group.command(name="infiltration", description="Infiltrer discrètement un lieu surveillé (Révolutionnaire)")
 @require_salon("salon_taverne")
@@ -167,6 +177,10 @@ async def insurrection_infiltration(interaction: discord.Interaction):
     await interaction.response.defer()
     player = await verifier_revolutionnaire(interaction)
     if player is None:
+        return
+    ko_restant = get_ko_restant(player)
+    if ko_restant:
+        await interaction.followup.send(f"😵 Tu es encore K.O. pendant **{ko_restant} minute(s)**, trop blessé pour t'infiltrer où que ce soit. Repose-toi ou fais appel à un Médecin !")
         return
 
     key = (interaction.guild_id, interaction.user.id)
@@ -218,7 +232,7 @@ async def insurrection_infiltration(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 
-# ===== SABOTAGE (coopératif) =====
+# ===== SABOTAGE (K.O. bloqué — combat réel) =====
 
 class SabotageJoinView(discord.ui.View):
     def __init__(self, guild_id, hote: discord.Member):
@@ -253,6 +267,9 @@ class SabotageJoinView(discord.ui.View):
         player = await get_player(self.guild_id, interaction.user.id)
         if player is None or player["faction"] != "Révolutionnaire":
             await interaction.response.send_message("⛔ Réservé aux Révolutionnaires ayant un personnage.", ephemeral=True)
+            return
+        if get_ko_restant(player):
+            await interaction.response.send_message("😵 Tu es K.O., trop blessé pour rejoindre une cellule pour l'instant.", ephemeral=True)
             return
         self.participants[interaction.user.id] = interaction.user
         await interaction.response.edit_message(embed=self.build_embed(), view=self)
@@ -360,6 +377,10 @@ async def insurrection_sabotage(interaction: discord.Interaction):
     player = await verifier_revolutionnaire(interaction)
     if player is None:
         return
+    ko_restant = get_ko_restant(player)
+    if ko_restant:
+        await interaction.followup.send(f"😵 Tu es encore K.O. pendant **{ko_restant} minute(s)**, trop blessé pour organiser une opération. Repose-toi ou fais appel à un Médecin !")
+        return
 
     view = SabotageJoinView(interaction.guild_id, interaction.user)
     msg = await interaction.followup.send(embed=view.build_embed(), view=view)
@@ -380,7 +401,7 @@ async def insurrection_sabotage(interaction: discord.Interaction):
     combat_view.message = combat_msg
 
 
-# ===== CODE SECRET =====
+# ===== CODE SECRET (pas de risque physique, aucune vérif K.O.) =====
 
 class CodeSecretModal(discord.ui.Modal, title="Déchiffrer le code"):
     def __init__(self, guild_id, user_id, mot_original):
@@ -454,7 +475,7 @@ async def insurrection_code_secret(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed, view=view)
 
 
-# ===== RECRUTEMENT CLANDESTIN =====
+# ===== RECRUTEMENT CLANDESTIN (pas de risque physique, aucune vérif K.O.) =====
 
 APPROCHES_RECRUTEMENT = {
     "ideaux": ("Idéaux", 0.60, (20, 45)),
