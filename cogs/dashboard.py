@@ -4,6 +4,10 @@ from database.db import get_pool
 from cogs.admin import SALON_DEFINITIONS
 from cogs.boss_mondial import get_active_boss, force_spawn_boss
 from cogs.welcome import get_welcome_config, WelcomeVerifyView
+from utils.faction_roles import (
+    get_faction_role_ids, set_faction_role_id, create_all_faction_roles,
+    assign_faction_role, sync_all_members_faction_roles, FACTION_ROLE_NAMES
+)
 from utils.players import add_xp
 from data.mers import MERS
 
