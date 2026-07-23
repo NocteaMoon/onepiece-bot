@@ -13,6 +13,7 @@ from utils.fruits import check_eveil
 from utils.haki import check_eveil_rois
 from utils.xp_cache import check_xp_cache_paliers, STAT_LABELS
 from utils.notoriete import add_notoriete, MONTANT_MINIJEU_COOP
+from utils.quetes import increment_quest_progress
 from data.marine_flavor import (
     LIEUX_PATROUILLE, EVENEMENTS_PATROUILLE, TEXTES_EVENEMENTS_PATROUILLE,
     NAVIRES_PIRATES_TRAQUES, SUSPECTS_INTERROGATOIRE, EXERCICES_INSPECTION
@@ -107,6 +108,7 @@ async def amiraute_patrouille(interaction: discord.Interaction):
                             interaction.guild_id, interaction.user.id, gain, COUT_PATROUILLE)
     await add_xp(interaction.guild_id, interaction.user.id, xp, xp // 2)
     await add_reputation_faction(interaction.guild_id, interaction.user.id, "Marine", MONTANT_COMBAT_VICTOIRE)
+    await increment_quest_progress(interaction.guild_id, interaction.user.id, "marine_minijeu")
 
     embed = discord.Embed(
         title="🔍 Patrouille",
@@ -164,6 +166,7 @@ class ExerciceTirView(discord.ui.View):
             await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", self.guild_id, self.user_id, gain)
         await add_xp(self.guild_id, self.user_id, 12, 5)
         await add_reputation_faction(self.guild_id, self.user_id, "Marine", MONTANT_COMBAT_VICTOIRE)
+        await increment_quest_progress(self.guild_id, self.user_id, "marine_minijeu")
 
         embed = discord.Embed(title="🎯 Exercice de tir", description=f"{texte}\n\n**+{gain}฿**", color=couleur)
         embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Marine")
@@ -262,6 +265,7 @@ class InterrogatoireView(discord.ui.View):
         reussi = random.random() < chance
 
         pool = get_pool()
+        await increment_quest_progress(self.guild_id, self.user_id, "marine_minijeu")
         if reussi:
             gain = random.randint(b_min, b_max)
             async with pool.acquire() as conn:
@@ -441,6 +445,7 @@ class BatailleCombatView(discord.ui.View):
                 await add_xp(self.guild_id, uid, 30, 12)
                 await add_reputation_faction(self.guild_id, uid, "Marine", MONTANT_COMBAT_VICTOIRE)
                 await add_notoriete(self.guild_id, uid, MONTANT_MINIJEU_COOP)
+                await increment_quest_progress(self.guild_id, uid, "marine_minijeu")
                 member = interaction.guild.get_member(uid)
                 lignes.append(f"{member.mention if member else uid} : +{part}฿")
             embed = self.build_embed(f"🏆 **{self.description}** est neutralisé et capturé !\n\n" + "\n".join(lignes))
@@ -578,6 +583,7 @@ async def amiraute_inspection(interaction: discord.Interaction):
             await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, m.id, gain)
         await add_xp(interaction.guild_id, m.id, 20 + (15 if m.id == meilleur_id else 0), 8)
         await add_reputation_faction(interaction.guild_id, m.id, "Marine", MONTANT_COMBAT_VICTOIRE)
+        await increment_quest_progress(interaction.guild_id, m.id, "marine_minijeu")
         tag = " 🏅 Meilleur élément !" if m.id == meilleur_id else ""
         lignes.append(f"{m.mention}{tag} : +{gain}฿")
 
