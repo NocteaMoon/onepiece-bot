@@ -87,6 +87,23 @@ async def assign_faction_role(guild: discord.Guild, member: discord.Member, fact
         pass
 
 
+async def remove_all_faction_roles(guild: discord.Guild, member: discord.Member):
+    """Retire tous les rôles de faction du membre (utilisé lors d'une réinitialisation de fiche)."""
+    role_ids = await get_faction_role_ids(guild.id)
+    a_retirer = []
+    for rid in role_ids.values():
+        if not rid:
+            continue
+        role = guild.get_role(rid)
+        if role and role in member.roles:
+            a_retirer.append(role)
+    if a_retirer:
+        try:
+            await member.remove_roles(*a_retirer, reason="Réinitialisation de la fiche joueur")
+        except discord.Forbidden:
+            pass
+
+
 async def sync_all_members_faction_roles(guild: discord.Guild) -> tuple:
     """Réassigne le rôle de faction à tous les joueurs existants en base. Retourne (succès, échecs)."""
     pool = get_pool()
