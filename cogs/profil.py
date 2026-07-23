@@ -3,6 +3,7 @@ from discord import app_commands
 from utils.players import get_player, create_player, xp_requis
 from utils.channel_check import require_salon
 from utils.succes import record_mer_visitee
+from utils.faction_roles import assign_faction_role
 
 FACTION_COLORS = {
     "Pirate": 0x8E44AD,
@@ -37,6 +38,7 @@ async def commencer(interaction: discord.Interaction, faction: app_commands.Choi
 
     await create_player(interaction.guild_id, interaction.user.id, faction.value)
     await record_mer_visitee(interaction.guild_id, interaction.user.id, "East Blue")
+    await assign_faction_role(interaction.guild, interaction.user, faction.value)
 
     embed = discord.Embed(
         title="🌊 Bienvenue dans la Grande Aventure !",
