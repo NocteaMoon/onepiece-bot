@@ -4,6 +4,8 @@ from database.db import get_pool
 from cogs.admin import SALON_DEFINITIONS
 from cogs.boss_mondial import get_active_boss, force_spawn_boss
 from cogs.welcome import get_welcome_config, WelcomeVerifyView
+from utils.players import add_xp
+from data.mers import MERS
 
 AUTOMOD_COLUMNS = ["anti_spam", "anti_liens", "anti_insultes", "anti_raid", "anti_mention", "anti_pub", "anti_alt", "anti_bot"]
 LABEL_BY_COLUMN = {col: label for label, col in SALON_DEFINITIONS}
@@ -12,7 +14,7 @@ SALON_CATEGORIES = {
     "serveur": ("🛠️ Serveur & Modération", ["salon_annonces", "salon_reglement", "salon_bienvenue", "salon_logs", "salon_moderation", "salon_rapports", "salon_general"]),
     "economie": ("💰 Économie", ["salon_economie", "salon_boutique"]),
     "aventure": ("⚔️ Aventure & Combat", ["salon_exploration", "salon_combat", "salon_duel", "salon_peche", "salon_casino", "salon_entrainement"]),
-    "organisations": ("🏴 Organisations", ["salon_equipages", "salon_marine", "salon_revolutionnaires", "salon_guilde"]),
+    "organisations": ("🏴‍☠️ Organisations", ["salon_equipages", "salon_marine", "salon_revolutionnaires", "salon_guilde"]),
     "progression": ("📈 Progression", ["salon_classements", "salon_quetes", "salon_succes", "salon_recompenses", "salon_carnet", "salon_cartes"]),
     "social": ("🎉 Social & Création", ["salon_taverne", "salon_regates", "salon_tresor", "salon_creation"]),
 }
@@ -246,7 +248,7 @@ class LangueSelect(discord.ui.Select):
     def __init__(self):
         options = [
             discord.SelectOption(label="Français", value="fr", emoji="🇫🇷"),
-            discord.SelectOption(label="English", value="en", emoji="🇬"),
+            discord.SelectOption(label="English", value="en", emoji="🇬🇧"),
         ]
         super().__init__(placeholder="Choisis la langue du bot...", options=options)
 
@@ -944,7 +946,7 @@ class JoueurUserSelect(discord.ui.UserSelect):
             return
         embed = discord.Embed(
             title=f"👤 {membre.display_name}",
-            description=f"Faction : **{player['faction']}**\nNiveau : **{player['niveau']}**\nBerrys : **{player['berrys']:,}฿**\n\nChoisis une action.",
+            description=f"Faction : **{player['faction']}**\nNiveau : **{player['niveau']}**\nBerrys : **{player['berrys']:,}฿**\nMer : **{player['mer']}**\n\nChoisis une action.",
             color=0x2C3E50
         )
         embed.set_footer(text="🌊 One Piece Bot • Dashboard")
@@ -1049,9 +1051,111 @@ class JoueurResetButton(discord.ui.Button):
         await interaction.response.edit_message(embed=embed, view=JoueurResetConfirmView(self.membre))
 
 
+class JoueurXPModal(discord.ui.Modal, title="🧪 Ajouter de l'XP (test)"):
+    def __init__(self, membre):
+        super().__init__()
+        self.membre = membre
+        self.xp = discord.ui.TextInput(label="Montant d'XP à ajouter", placeholder="Ex : 50000 pour atteindre un haut niveau", max_length=8)
+        self.add_item(self.xp)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            montant = int(self.xp.value)
+        except ValueError:
+            await interaction.response.send_message("⛔ Doit être un nombre entier.", ephemeral=True)
+            return
+        niveaux_gagnes, nouveau_niveau = await add_xp(interaction.guild_id, self.membre.id, montant, montant // 2)
+        description = f"{self.membre.mention} a reçu **{montant:,} XP**"
+        description += f" et est passé au niveau **{nouveau_niveau}** !" if niveaux_gagnes > 0 else " (pas assez pour monter de niveau)."
+        embed = discord.Embed(title="✅ XP ajoutée (test)", description=description, color=0x27AE60)
+        embed.set_footer(text="🌊 One Piece Bot • Dashboard • Outil de test — utilise la vraie fonction de leveling")
+        await interaction.response.edit_message(embed=embed, view=None)
+
+
+class JoueurXPButton(discord.ui.Button):
+    def __init__(self, membre):
+        self.membre = membre
+        super().__init__(label="Ajouter de l'XP", emoji="⭐", style=discord.ButtonStyle.success)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(JoueurXPModal(self.membre))
+
+
+class JoueurBerrysModal(discord.ui.Modal, title="🧪 Ajouter des Berrys (test)"):
+    def __init__(self, membre):
+        super().__init__()
+        self.membre = membre
+        self.montant = discord.ui.TextInput(label="Montant de Berrys à ajouter", max_length=8)
+        self.add_item(self.montant)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            montant = int(self.montant.value)
+        except ValueError:
+            await interaction.response.send_message("⛔ Doit être un nombre entier.", ephemeral=True)
+            return
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id, montant)
+        embed = discord.Embed(title="✅ Berrys ajoutés (test)", description=f"{self.membre.mention} a reçu **{montant:,}฿**.", color=0x27AE60)
+        embed.set_footer(text="🌊 One Piece Bot • Dashboard • Outil de test")
+        await interaction.response.edit_message(embed=embed, view=None)
+
+
+class JoueurBerrysButton(discord.ui.Button):
+    def __init__(self, membre):
+        self.membre = membre
+        super().__init__(label="Ajouter des Berrys", emoji="💰", style=discord.ButtonStyle.success)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(JoueurBerrysModal(self.membre))
+
+
+class JoueurTeleportSelect(discord.ui.Select):
+    def __init__(self, membre):
+        self.membre = membre
+        options = [discord.SelectOption(label=f"{nom} (niv. {niv}+ normalement)", value=nom) for nom, niv, cout, end, ile in MERS]
+        super().__init__(placeholder="Téléporter vers...", options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        nom_mer = self.values[0]
+        mer_data = next((m for m in MERS if m[0] == nom_mer), None)
+        ile_arrivee = mer_data[4] if mer_data else "Île de départ"
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE players SET mer = $3, ile = $4 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id, nom_mer, ile_arrivee)
+        embed = discord.Embed(
+            title="✅ Téléportation effectuée (test)",
+            description=f"{self.membre.mention} est maintenant sur **{nom_mer}** ({ile_arrivee}) — sans condition de niveau ni coût, c'est un outil de test.",
+            color=0x27AE60
+        )
+        embed.set_footer(text="🌊 One Piece Bot • Dashboard • Outil de test")
+        await interaction.response.edit_message(embed=embed, view=None)
+
+
+class JoueurTeleportButton(discord.ui.Button):
+    def __init__(self, membre):
+        self.membre = membre
+        super().__init__(label="Téléporter (test)", emoji="🗺️", style=discord.ButtonStyle.success)
+
+    async def callback(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title=f"🗺️ Téléporter {self.membre.display_name}",
+            description="Choisis la mer de destination — sans condition de niveau, sans coût, outil de test.",
+            color=0x2C3E50
+        )
+        embed.set_footer(text="🌊 One Piece Bot • Dashboard • Outil de test")
+        view = discord.ui.View(timeout=180)
+        view.add_item(JoueurTeleportSelect(self.membre))
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
 class DashboardJoueurActionsView(discord.ui.View):
     def __init__(self, membre):
         super().__init__(timeout=180)
+        self.add_item(JoueurXPButton(membre))
+        self.add_item(JoueurBerrysButton(membre))
+        self.add_item(JoueurTeleportButton(membre))
         self.add_item(JoueurFactionButton(membre))
         self.add_item(JoueurResetButton(membre))
         self.add_item(DashboardBackHomeButton())
