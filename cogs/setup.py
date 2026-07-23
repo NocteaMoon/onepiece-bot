@@ -16,6 +16,8 @@ CHANNELS_STRUCTURE = [
     ]),
     ("💬 COMMUNAUTÉ", [
         ("salon_general", "général", False),
+        ("salon_creation", "création-personnage", False),
+        ("salon_carnet", "carnet-de-bord", False),
     ]),
     ("💰 ÉCONOMIE", [
         ("salon_economie", "économie", False),
@@ -26,17 +28,26 @@ CHANNELS_STRUCTURE = [
         ("salon_combat", "combat", False),
         ("salon_duel", "duel-pvp", False),
         ("salon_peche", "pêche-chasse-récolte", False),
+        ("salon_entrainement", "entraînement", False),
+    ]),
+    ("🎲 DIVERTISSEMENT", [
         ("salon_casino", "casino", False),
+        ("salon_taverne", "défis-de-taverne", False),
+        ("salon_regates", "régates", False),
+        ("salon_tresor", "chasse-au-trésor", False),
+        ("salon_cartes", "cartes-à-collectionner", False),
     ]),
     ("🏴‍☠️ ORGANISATIONS", [
         ("salon_equipages", "équipages", False),
         ("salon_marine", "marine", False),
         ("salon_revolutionnaires", "révolutionnaires", False),
+        ("salon_guilde", "guilde-des-métiers", False),
     ]),
     ("📊 INFOS JEU", [
         ("salon_classements", "classements", False),
         ("salon_quetes", "quêtes-événements", False),
         ("salon_succes", "succès", False),
+        ("salon_recompenses", "récompenses", False),
     ]),
 ]
 
