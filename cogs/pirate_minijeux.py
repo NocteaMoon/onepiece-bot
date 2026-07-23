@@ -7,6 +7,12 @@ from database.db import get_pool
 from utils.players import get_player, add_xp
 from utils.combat_stats import get_effective_stats
 from utils.channel_check import require_salon
+from utils.reputation import add_reputation_faction, MONTANT_COMBAT_VICTOIRE
+from utils.maitrise import progresser_maitrise, LABELS as MAITRISE_LABELS
+from utils.fruits import check_eveil
+from utils.haki import check_eveil_rois
+from utils.xp_cache import check_xp_cache_paliers, STAT_LABELS
+from utils.notoriete import add_notoriete, MONTANT_MINIJEU_COOP
 from data.pirate_flavor import LIEUX_CHASSE_PRIME, CONVOIS_ABORDAGE, ROUNDS_BEUVERIE, GROS_CONVOIS_PILLAGE
 
 pirate_group = app_commands.Group(name="pirate", description="Mini-jeux exclusifs à la faction Pirate")
@@ -32,6 +38,34 @@ async def verifier_pirate(interaction: discord.Interaction):
         await interaction.followup.send("⛔ Ces défis sont réservés à la faction **Pirate**.")
         return None
     return player
+
+
+async def notifier_progression_hors_combat(interaction, uid, member):
+    """Vérifie éveil de fruit, Haki des Rois et paliers d'XP caché pour un joueur donné, hors du flux de /combattre."""
+    if not member:
+        return
+    eveil_fruit = await check_eveil(interaction.guild_id, uid)
+    if eveil_fruit:
+        await interaction.followup.send(embed=discord.Embed(
+            title="✨ ÉVEIL !",
+            description=f"{member.mention} ressent un pouvoir immense monter en lui/elle... **Son Fruit du Démon vient de s'éveiller !**",
+            color=0x8E44AD
+        ))
+    eveil_rois = await check_eveil_rois(interaction.guild_id, uid)
+    if eveil_rois:
+        await interaction.followup.send(embed=discord.Embed(
+            title="👑 HAKI DES ROIS !",
+            description=f"Une aura écrasante émane soudain de {member.mention}... **Le Haki des Rois vient de s'éveiller !**",
+            color=0xD4A017
+        ))
+    nouveaux_paliers = await check_xp_cache_paliers(interaction.guild_id, uid)
+    for seuil, berrys_palier, stat, valeur in nouveaux_paliers:
+        label = STAT_LABELS.get(stat, stat)
+        await interaction.followup.send(embed=discord.Embed(
+            title="🌟 Une force insoupçonnée grandit en toi...",
+            description=f"{member.mention} ressent une expérience cachée refaire surface : **+{berrys_palier:,}฿** et **+{valeur} {label}** de façon permanente !",
+            color=0xF4C430
+        ))
 
 
 # ===== CHASSE À LA PRIME =====
@@ -90,6 +124,7 @@ async def pirate_chasse_prime(interaction: discord.Interaction, cible: discord.M
             await conn.execute("UPDATE players SET prime = GREATEST(0, prime - $3) WHERE guild_id=$1 AND user_id=$2",
                                 interaction.guild_id, cible.id, vol)
         await add_xp(interaction.guild_id, interaction.user.id, 20, 8)
+        await add_reputation_faction(interaction.guild_id, interaction.user.id, "Pirate", MONTANT_COMBAT_VICTOIRE)
         embed = discord.Embed(
             title="💰 Traque réussie !",
             description=f"Tu repères **{cible.display_name}** dans {lieu} et lui subtilises une partie de sa mise à prix : **+{vol:,}฿** !",
@@ -143,6 +178,7 @@ async def pirate_abordage(interaction: discord.Interaction):
             await conn.execute("UPDATE players SET berrys = berrys + $3, endurance = endurance - $4 WHERE guild_id=$1 AND user_id=$2",
                                 interaction.guild_id, interaction.user.id, gain, COUT_ABORDAGE)
         await add_xp(interaction.guild_id, interaction.user.id, 15, 6)
+        await add_reputation_faction(interaction.guild_id, interaction.user.id, "Pirate", MONTANT_COMBAT_VICTOIRE)
         embed = discord.Embed(
             title="⚔️ Abordage réussi !",
             description=f"Tu prends d'assaut **{description}** ! Butin récupéré : **{gain:,}฿**.",
@@ -254,6 +290,7 @@ async def pirate_beuverie(interaction: discord.Interaction):
     async with pool.acquire() as conn:
         await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, gagnant.id, pot)
     await add_xp(interaction.guild_id, gagnant.id, 25, 10)
+    await add_reputation_faction(interaction.guild_id, gagnant.id, "Pirate", MONTANT_COMBAT_VICTOIRE)
 
     embed = discord.Embed(
         title="🍺 Beuverie terminée !",
@@ -349,6 +386,12 @@ class PillageCombatView(discord.ui.View):
         self.pv -= degats
         self.degats[interaction.user.id] += degats
 
+        message_frappe = f"**{interaction.user.display_name}** frappe pour **{degats}** dégâts !"
+        nouveau_palier = await progresser_maitrise(self.guild_id, interaction.user.id, eff.get("type_arme_equipee"))
+        if nouveau_palier is not None:
+            label = MAITRISE_LABELS.get(eff.get("type_arme_equipee"), "?")
+            message_frappe += f"\n💪 Maîtrise en **{label}** progresse !"
+
         if self.pv <= 0:
             self.termine = True
             for c in self.children:
@@ -362,14 +405,20 @@ class PillageCombatView(discord.ui.View):
                 async with pool.acquire() as conn:
                     await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", self.guild_id, uid, part)
                 await add_xp(self.guild_id, uid, 30, 12)
+                await add_reputation_faction(self.guild_id, uid, "Pirate", MONTANT_COMBAT_VICTOIRE)
+                await add_notoriete(self.guild_id, uid, MONTANT_MINIJEU_COOP)
                 member = interaction.guild.get_member(uid)
                 lignes.append(f"{member.mention if member else uid} : +{part}฿")
             embed = self.build_embed(f"🏆 **{self.description}** est pillé avec succès !\n\n" + "\n".join(lignes))
             embed.color = 0x27AE60
             await self.message.edit(embed=embed, view=self)
+
+            for uid in self.degats:
+                member = interaction.guild.get_member(uid)
+                await notifier_progression_hors_combat(interaction, uid, member)
             return
 
-        await self.message.edit(embed=self.build_embed(f"**{interaction.user.display_name}** frappe pour **{degats}** dégâts !"), view=self)
+        await self.message.edit(embed=self.build_embed(message_frappe), view=self)
 
     async def on_timeout(self):
         if self.termine:
@@ -450,6 +499,7 @@ class DuelEclairView(discord.ui.View):
         async with pool.acquire() as conn:
             await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", self.guild_id, gagnant.id, gain)
         await add_xp(self.guild_id, gagnant.id, 15, 6)
+        await add_reputation_faction(self.guild_id, gagnant.id, "Pirate", MONTANT_COMBAT_VICTOIRE)
 
         embed = discord.Embed(title="🗡️ Duel au sabre éclair", description=f"{texte}\n\n+{gain}฿ pour le vainqueur !", color=0x27AE60 if self.pret else 0x7F0000)
         embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Pirates")
