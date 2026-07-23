@@ -4,12 +4,12 @@ from database.db import get_pool
 from cogs.admin import SALON_DEFINITIONS
 from cogs.boss_mondial import get_active_boss, force_spawn_boss
 from cogs.welcome import get_welcome_config, WelcomeVerifyView
-from utils.faction_roles import (
-    get_faction_role_ids, set_faction_role_id, create_all_faction_roles,
-    assign_faction_role, sync_all_members_faction_roles, FACTION_ROLE_NAMES
-)
 from utils.players import add_xp
 from data.mers import MERS
+from utils.faction_roles import (
+    get_faction_role_ids, set_faction_role_id, create_all_faction_roles,
+    assign_faction_role, remove_all_faction_roles, sync_all_members_faction_roles, FACTION_ROLE_NAMES
+)
 
 AUTOMOD_COLUMNS = ["anti_spam", "anti_liens", "anti_insultes", "anti_raid", "anti_mention", "anti_pub", "anti_alt", "anti_bot"]
 LABEL_BY_COLUMN = {col: label for label, col in SALON_DEFINITIONS}
@@ -981,7 +981,8 @@ class JoueurFactionSelect(discord.ui.Select):
                 if row["metier"] and faction != "Civil":
                     await conn.execute("UPDATE players SET metier = NULL, metier_xp = 0, metier_rang = 0 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id)
                 await conn.execute("UPDATE players SET faction = $3 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id, faction)
-        embed = discord.Embed(title="✅ Faction modifiée", description=f"Faction de {self.membre.mention} définie sur **{faction}**.", color=0x27AE60)
+        await assign_faction_role(interaction.guild, self.membre, faction)
+        embed = discord.Embed(title="✅ Faction modifiée", description=f"Faction de {self.membre.mention} définie sur **{faction}** (rôle Discord mis à jour aussi).", color=0x27AE60)
         embed.set_footer(text="🌊 One Piece Bot • Dashboard")
         await interaction.response.edit_message(embed=embed, view=None)
 
@@ -1018,7 +1019,8 @@ class JoueurResetConfirmButton(discord.ui.Button):
                     await conn.execute("DELETE FROM crews WHERE id = $1", crew["id"])
                 await conn.execute("DELETE FROM inventory WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id)
                 await conn.execute("DELETE FROM players WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id)
-        embed = discord.Embed(title="💥 Fiche réinitialisée", description=f"La fiche de {self.membre.mention} a été entièrement réinitialisée.", color=0x27AE60)
+        await remove_all_faction_roles(interaction.guild, self.membre)
+        embed = discord.Embed(title="💥 Fiche réinitialisée", description=f"La fiche de {self.membre.mention} a été entièrement réinitialisée (rôle Discord retiré aussi).", color=0x27AE60)
         embed.set_footer(text="🌊 One Piece Bot • Dashboard")
         await interaction.response.edit_message(embed=embed, view=None)
 
@@ -1325,6 +1327,93 @@ class DashboardPermissionsView(discord.ui.View):
         self.add_item(DashboardBackHomeButton())
 
 
+# ===== RÔLES DE FACTION =====
+
+async def build_faction_roles_embed(guild_id: int):
+    role_ids = await get_faction_role_ids(guild_id)
+    lignes = []
+    for faction, label in FACTION_ROLE_NAMES.items():
+        rid = role_ids[faction]
+        statut = f"<@&{rid}>" if rid else "❌ Non lié"
+        lignes.append(f"**{label}** : {statut}")
+    embed = discord.Embed(
+        title="🎭 Rôles de faction",
+        description="\n".join(lignes) + "\n\nPurement visuel/social — n'affecte jamais l'accès aux commandes.",
+        color=0x2C3E50
+    )
+    embed.set_footer(text="🌊 One Piece Bot • Dashboard")
+    return embed
+
+
+class FactionRoleCreateButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Créer les 4 rôles + synchroniser", emoji="🎨", style=discord.ButtonStyle.success)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        existants = await get_faction_role_ids(interaction.guild_id)
+        if any(existants.values()):
+            await interaction.followup.send("⚠️ Des rôles sont déjà liés. Utilise le menu déroulant pour en changer un individuellement, ça évite les doublons.", ephemeral=True)
+            return
+        await create_all_faction_roles(interaction.guild)
+        succes, echecs = await sync_all_members_faction_roles(interaction.guild)
+        embed = await build_faction_roles_embed(interaction.guild_id)
+        embed.add_field(name="Résultat", value=f"✅ {succes} joueur(s) synchronisé(s)" + (f", {echecs} introuvable(s) (ont peut-être quitté)" if echecs else ""), inline=False)
+        await interaction.edit_original_response(embed=embed, view=DashboardFactionRolesView())
+
+
+class FactionRoleSyncButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Synchroniser tous les joueurs", emoji="🔄", style=discord.ButtonStyle.primary)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        role_ids = await get_faction_role_ids(interaction.guild_id)
+        if not any(role_ids.values()):
+            await interaction.followup.send("⚠️ Aucun rôle lié pour l'instant. Crée-les d'abord avec le bouton dédié.", ephemeral=True)
+            return
+        succes, echecs = await sync_all_members_faction_roles(interaction.guild)
+        embed = await build_faction_roles_embed(interaction.guild_id)
+        embed.add_field(name="Résultat", value=f"✅ {succes} joueur(s) synchronisé(s)" + (f", {echecs} introuvable(s) (ont peut-être quitté)" if echecs else ""), inline=False)
+        await interaction.edit_original_response(embed=embed, view=DashboardFactionRolesView())
+
+
+class FactionRoleManualSelect(discord.ui.RoleSelect):
+    def __init__(self, faction):
+        self.faction = faction
+        super().__init__(placeholder=f"Choisis le rôle Discord pour {faction}...", min_values=1, max_values=1)
+
+    async def callback(self, interaction: discord.Interaction):
+        role = self.values[0]
+        await set_faction_role_id(interaction.guild_id, self.faction, role.id)
+        embed = await build_faction_roles_embed(interaction.guild_id)
+        embed.add_field(name="✅ Mis à jour", value=f"**{self.faction}** est maintenant lié à {role.mention}. Pense à cliquer sur 'Synchroniser' pour l'appliquer à tous les joueurs existants.", inline=False)
+        await interaction.response.edit_message(embed=embed, view=DashboardFactionRolesView())
+
+
+class FactionPickSelect(discord.ui.Select):
+    def __init__(self):
+        options = [discord.SelectOption(label=label, value=faction) for faction, label in FACTION_ROLE_NAMES.items()]
+        super().__init__(placeholder="Lier manuellement une faction à un rôle existant...", options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        faction = self.values[0]
+        embed = discord.Embed(title=f"🎭 Lier : {FACTION_ROLE_NAMES[faction]}", description="Choisis le rôle Discord existant à utiliser.", color=0x2C3E50)
+        embed.set_footer(text="🌊 One Piece Bot • Dashboard")
+        view = discord.ui.View(timeout=180)
+        view.add_item(FactionRoleManualSelect(faction))
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
+class DashboardFactionRolesView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+        self.add_item(FactionPickSelect())
+        self.add_item(FactionRoleCreateButton())
+        self.add_item(FactionRoleSyncButton())
+        self.add_item(DashboardBackHomeButton())
+
+
 # ===== PARAMÈTRES AVANCÉS (Reset global) =====
 
 class ResetGlobalConfirmButton(discord.ui.Button):
@@ -1389,6 +1478,7 @@ CATEGORIES = {
     "joueurs": "👤 Joueurs",
     "boss": "👑 Boss mondial",
     "permissions": "🔑 Permissions",
+    "faction_roles": "🎭 Rôles de faction",
     "langue": "🌐 Langue",
     "avance": "⚙️ Paramètres avancés",
 }
@@ -1428,6 +1518,9 @@ class DashboardCategorySelect(discord.ui.Select):
         elif self.values[0] == "permissions":
             embed = await build_permissions_embed(interaction.guild_id)
             await interaction.response.edit_message(embed=embed, view=DashboardPermissionsView())
+        elif self.values[0] == "faction_roles":
+            embed = await build_faction_roles_embed(interaction.guild_id)
+            await interaction.response.edit_message(embed=embed, view=DashboardFactionRolesView())
         elif self.values[0] == "avance":
             embed = discord.Embed(title="⚙️ Paramètres avancés", description="Actions de maintenance globales.", color=0x2C3E50)
             embed.set_footer(text="🌊 One Piece Bot • Dashboard")
