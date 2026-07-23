@@ -30,6 +30,11 @@ async def init_db():
         for col in SALON_COLUMNS:
             await conn.execute(f"ALTER TABLE guild_config ADD COLUMN IF NOT EXISTS {col} BIGINT")
 
+        await conn.execute("ALTER TABLE guild_config ADD COLUMN IF NOT EXISTS role_pirate BIGINT")
+        await conn.execute("ALTER TABLE guild_config ADD COLUMN IF NOT EXISTS role_marine BIGINT")
+        await conn.execute("ALTER TABLE guild_config ADD COLUMN IF NOT EXISTS role_revolutionnaire BIGINT")
+        await conn.execute("ALTER TABLE guild_config ADD COLUMN IF NOT EXISTS role_civil BIGINT")
+
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS guild_command_roles (
                 guild_id BIGINT,
