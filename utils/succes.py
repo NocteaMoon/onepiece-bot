@@ -1,6 +1,5 @@
 from database.db import get_pool
 from data.succes import FAMILLES
-from utils.notoriete import add_notoriete, MONTANT_SUCCES
 
 GRADES_CHEFS = ("Capitaine", "Amiral", "Meneur", "Maitre")
 
@@ -14,6 +13,9 @@ DESCRIPTIONS = {
     "org_prime_min": lambda s: f"Ton organisation cumule au moins {s:,}฿ de prime parmi ses membres",
     "tournois_gagnes_min": lambda s: f"Remporter {s} tournoi(s)",
     "boss_vaincus_min": lambda s: f"Participer à la victoire contre {s} boss mondial/mondiaux",
+    "notoriete_min": lambda s: f"Atteindre {s:,} points de Notoriété",
+    "reputation_max": lambda s: f"Atteindre {s:,} points de réputation dans une faction (Pirates/Marine/Révolutionnaires/Civils)",
+    "cartes_uniques_min": lambda s: f"Posséder {s} carte(s) unique(s) différente(s)",
 }
 
 
@@ -55,6 +57,19 @@ async def _condition_remplie(guild_id, user_id, player, check_type, seuil):
         return player["nb_tournois_gagnes"] >= seuil
     if check_type == "boss_vaincus_min":
         return player["nb_boss_vaincus"] >= seuil
+    if check_type == "notoriete_min":
+        return player["notoriete"] >= seuil
+    if check_type == "reputation_max":
+        meilleure_rep = max(player["rep_pirates"], player["rep_marine"], player["rep_revolutionnaires"], player["rep_civils"])
+        return meilleure_rep >= seuil
+    if check_type == "cartes_uniques_min":
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            count = await conn.fetchval(
+                "SELECT COUNT(DISTINCT code) FROM cards_owned WHERE guild_id=$1 AND user_id=$2",
+                guild_id, user_id
+            )
+        return (count or 0) >= seuil
     return False
 
 
@@ -122,5 +137,4 @@ async def claim_succes(guild_id, user_id, player, code):
                 "UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2",
                 guild_id, user_id, berrys
             )
-    await add_notoriete(guild_id, user_id, MONTANT_SUCCES)
     return titre, berrys
