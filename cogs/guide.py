@@ -124,7 +124,8 @@ def embed_succes():
         title="🏆 Succès",
         description=(
             "**`/succes`** — Un menu déroulant classe tes hauts faits par catégorie : Niveau, Richesse, "
-            "Prime, Mers explorées, Métier, Commandement, Organisation, Tournois, Boss mondiaux.\n\n"
+            "Prime, Mers explorées, Métier, Commandement, Organisation, Tournois, Boss mondiaux, "
+            "Notoriété, Réputation, Collection de cartes, Mini-jeux de faction.\n\n"
             "Chaque catégorie contient plusieurs **paliers progressifs** — les premiers sont faciles à "
             "atteindre, les derniers demandent un vrai investissement. De nouveaux paliers peuvent être "
             "ajoutés à tout moment, la liste ne s'arrête jamais vraiment !\n\n"
@@ -154,8 +155,12 @@ def embed_pouvoirs():
             "• **Le Haki des Rois** est le plus rare de tous — comme l'éveil de fruit, il se déclenche spontanément "
             "après une victoire, sans jamais pouvoir être entraîné directement.\n\n"
             "**⚔️ Maîtrise d'armes** — `/maitrise` pour consulter tes 6 maîtrises (Épée, Poings, Lance, Pistolet, "
-            "Fusil, Arc). Elles progressent **automatiquement** en te battant avec l'arme équipée, aucune commande "
-            "d'entraînement dédiée : plus tu utilises un type d'arme, plus tu deviens naturellement doué avec !"
+            "Fusil, Arc). Elles progressent **automatiquement** en te battant avec l'arme équipée, plus tu utilises "
+            "un type d'arme, plus tu deviens naturellement doué avec !\n\n"
+            "**🏋️ `/entrainement`** (dans #entrainement) — Une session ciblée, différenciée selon ta faction et ton grade : "
+            "Pirate (les 6 maîtrises au choix), Marine (Épée/Pistolet/Fusil, + Haki Armement débloqué dès Commandant), "
+            "Révolutionnaire (Poings/Lance/Arc, + Haki Observation débloqué dès Commandant), Civil (entraînement de "
+            "base + perfectionnement de ton métier). Vient en plus de la progression passive du combat et de `/haki entrainer`, pas à leur place !"
         ),
         color=0x8E44AD
     )
@@ -202,6 +207,8 @@ def embed_metiers():
             "`/musicien composer` crée des partitions procurant des soins à partir d'instruments.\n"
             "**🏺 Archéologue** → `/archeologue etudier` gagne des Berrys en étudiant des ruines, "
             "`/archeologue dechiffrer` crée des reliques procurant des soins à partir de vestiges anciens.\n\n"
+            "💡 `/entrainement` (dans #entrainement) offre aussi une session de perfectionnement dédiée à ton "
+            "métier, en plus de la pratique normale.\n\n"
             "⚠️ **Attention à ne pas confondre deux systèmes de rangs différents :**\n"
             "• Ton **rang de métier** (Apprenti → Confirmé → Maître) = ta compétence personnelle, "
             "progresse via `metier_xp` en pratiquant ton métier.\n"
@@ -251,6 +258,8 @@ def embed_minijeux():
             "**🏘️ Exclusifs Civil — `/atelier`** : `rapidite` (réflexes), `artisanat` (consomme un ingrédient), "
             "`negociation` (choix d'approche), `encheres` (multi 2-6, enchères secrètes à l'aveugle), "
             "`foire` (coopératif 2-6)\n\n"
+            "💡 Presque tous proposent maintenant un vrai choix tactique avant résolution (approche prudente vs "
+            "risquée, deux styles de frappe...) — plus un seul bouton à répéter bêtement !\n\n"
             "**Boss mondial :** apparition aléatoire et imprévisible sur une mer, ouvert à tous les "
             "joueurs présents (+3 Notoriété par participant). `/boss_mondial statut` pour vérifier."
         ),
@@ -265,7 +274,9 @@ def embed_prime():
         description=(
             "**`/prime_tete`** — Ton avis de recherche officiel : prime, navire, équipage, faction. "
             "Regarde aussi celui d'un ami avec `/prime_tete membre:@quelqu'un` !\n\n"
-            "**`/reputation`** — Vue d'ensemble de ta réputation par faction, ta notoriété et ton respect d'équipage.\n\n"
+            "**`/reputation`** — Vue d'ensemble de ta réputation par faction, ta notoriété et ton respect "
+            "d'équipage. Ta Notoriété débloque aussi des titres exclusifs à certains paliers cachés — une "
+            "bonne surprise t'attend peut-être la prochaine fois que tu la consultes !\n\n"
             "Ta prime augmente en gagnant des combats et certains mini-jeux. Attention : elle peut aussi "
             "**baisser** — un Marine qui te bat en duel réduit ta prime de 20% !"
         ),
@@ -298,7 +309,7 @@ class GuideSelect(discord.ui.Select):
             discord.SelectOption(label="Accueil", value="accueil", emoji="📖"),
             discord.SelectOption(label="Ton personnage", value="profil", emoji="📈"),
             discord.SelectOption(label="Économie", value="economie", emoji="💰"),
-            discord.SelectOption(label="Aventure", value="aventure", emoji="🗺️"),
+            discord.SelectOption(label="Aventure", value="aventure", emoji="🗺"),
             discord.SelectOption(label="Quêtes", value="quetes", emoji="📜"),
             discord.SelectOption(label="Récompenses", value="recompenses", emoji="🎁"),
             discord.SelectOption(label="Succès", value="succes", emoji="🏆"),
