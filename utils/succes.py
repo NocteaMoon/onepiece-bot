@@ -20,7 +20,7 @@ DESCRIPTIONS = {
 }
 
 
-async def record_mer_visitee(guild_id: int, user_id: int, mer: str):
+async def record_mer_visitee(guild_id, user_id, mer):
     pool = get_pool()
     async with pool.acquire() as conn:
         await conn.execute(
@@ -139,5 +139,9 @@ async def claim_succes(guild_id, user_id, player, code):
             await conn.execute(
                 "UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2",
                 guild_id, user_id, berrys
+            )
+            await conn.execute(
+                "INSERT INTO titres_debloques (guild_id, user_id, titre) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING",
+                guild_id, user_id, titre
             )
     return titre, berrys
