@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 from utils.players import get_player
+from utils.notoriete import check_notoriete_paliers
 
 @app_commands.command(name="reputation", description="Voir ta réputation, ta notoriété et ton respect d'équipage")
 @app_commands.describe(membre="Le membre à consulter (toi par défaut)")
@@ -21,11 +22,23 @@ async def reputation(interaction: discord.Interaction, membre: discord.Member = 
     embed.add_field(name="🔥 Révolutionnaires", value=str(player["rep_revolutionnaires"]), inline=True)
     embed.add_field(name="🏘️ Civils", value=str(player["rep_civils"]), inline=True)
     embed.add_field(name="🛒 Marchands", value=str(player["rep_marchands"]), inline=True)
-    embed.add_field(name="\u200b", value="\u200b", inline=True)
+    embed.add_field(name="​", value="​", inline=True)
     embed.add_field(name="🌟 Notoriété", value=f"{player['notoriete']:,} pts", inline=True)
     embed.add_field(name="🏴‍☠️ Respect d'équipage", value=f"{player['respect_equipage']:,} pts", inline=True)
     embed.set_footer(text="🌊 One Piece Bot • Réputation")
     await interaction.followup.send(embed=embed)
+
+    if cible.id == interaction.user.id:
+        nouveaux_paliers = await check_notoriete_paliers(interaction.guild_id, interaction.user.id)
+        for seuil, berrys, titre in nouveaux_paliers:
+            await interaction.followup.send(embed=discord.Embed(
+                title="🌟 Ta notoriété atteint un nouveau sommet !",
+                description=(
+                    f"{interaction.user.mention} est désormais connu(e) sous le titre **{titre}** !\n"
+                    f"**+{berrys:,}฿** • Équipe ce titre avec `/titre choisir` !"
+                ),
+                color=0xF4C430
+            ))
 
 
 def setup_reputation_commands(bot):
