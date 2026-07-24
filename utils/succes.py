@@ -16,6 +16,7 @@ DESCRIPTIONS = {
     "notoriete_min": lambda s: f"Atteindre {s:,} points de Notoriété",
     "reputation_max": lambda s: f"Atteindre {s:,} points de réputation dans une faction (Pirates/Marine/Révolutionnaires/Civils)",
     "cartes_uniques_min": lambda s: f"Posséder {s} carte(s) unique(s) différente(s)",
+    "minijeux_faction_min": lambda s: f"Participer {s} fois à un mini-jeu de ta faction (/pirate, /amiraute, /insurrection, /atelier)",
 }
 
 
@@ -70,6 +71,8 @@ async def _condition_remplie(guild_id, user_id, player, check_type, seuil):
                 guild_id, user_id
             )
         return (count or 0) >= seuil
+    if check_type == "minijeux_faction_min":
+        return player["nb_minijeux_faction"] >= seuil
     return False
 
 
