@@ -2,11 +2,18 @@ import discord
 from discord import app_commands
 import asyncio
 import random
+import datetime
 from database.db import get_pool
 from utils.players import get_player, add_xp
 from utils.combat_stats import get_effective_stats
 from utils.channel_check import require_salon
 from utils.announcements import announce_level_up
+from utils.fruits import check_eveil
+from utils.haki import check_eveil_rois
+from utils.xp_cache import check_xp_cache_paliers, STAT_LABELS
+from utils.maitrise import progresser_maitrise, LABELS as MAITRISE_LABELS
+from utils.reputation import add_reputation_faction, MONTANT_COMBAT_VICTOIRE
+from utils.quetes import increment_quest_progress
 from utils.notoriete import add_notoriete, MONTANT_TOURNOI
 
 DUREE_INSCRIPTION = 45
@@ -16,6 +23,44 @@ def barre(valeur, max_valeur, taille=10, plein="🟩", vide="⬜"):
     valeur = max(0, min(max_valeur, valeur))
     rempli = round(valeur / max_valeur * taille) if max_valeur > 0 else 0
     return plein * rempli + vide * (taille - rempli)
+
+
+def get_ko_restant(player) -> int:
+    """Retourne le nombre de minutes de K.O. restantes, ou 0 si pas K.O."""
+    if not player["ko_jusqua"]:
+        return 0
+    now = datetime.datetime.utcnow()
+    if player["ko_jusqua"] <= now:
+        return 0
+    return int((player["ko_jusqua"] - now).total_seconds() // 60) + 1
+
+
+async def notifier_progression_hors_combat(channel, guild_id, uid, member):
+    """Vérifie éveil de fruit, Haki des Rois et paliers d'XP caché après une victoire de match. Passe par le salon (pas interaction) pour fonctionner même après un timeout."""
+    if not member:
+        return
+    eveil_fruit = await check_eveil(guild_id, uid)
+    if eveil_fruit:
+        await channel.send(embed=discord.Embed(
+            title="✨ ÉVEIL !",
+            description=f"{member.mention} ressent un pouvoir immense monter en lui/elle... **Son Fruit du Démon vient de s'éveiller !**",
+            color=0x8E44AD
+        ))
+    eveil_rois = await check_eveil_rois(guild_id, uid)
+    if eveil_rois:
+        await channel.send(embed=discord.Embed(
+            title="👑 HAKI DES ROIS !",
+            description=f"Une aura écrasante émane soudain de {member.mention}... **Le Haki des Rois vient de s'éveiller en toi !**",
+            color=0xD4A017
+        ))
+    nouveaux_paliers = await check_xp_cache_paliers(guild_id, uid)
+    for seuil, berrys_palier, stat, valeur in nouveaux_paliers:
+        label = STAT_LABELS.get(stat, stat)
+        await channel.send(embed=discord.Embed(
+            title="🌟 Une force insoupçonnée grandit en toi...",
+            description=f"{member.mention} ressent une expérience cachée refaire surface : **+{berrys_palier:,}฿** et **+{valeur} {label}** de façon permanente !",
+            color=0xF4C430
+        ))
 
 
 class TournamentMatchView(discord.ui.View):
@@ -59,10 +104,28 @@ class TournamentMatchView(discord.ui.View):
         for c in self.children:
             c.disabled = True
         self.winner = self.joueur(gagnant_id)
+        gagnant = self.winner
+        perdant_id = self.p2["id"] if gagnant_id == self.p1["id"] else self.p1["id"]
+        perdant = self.joueur(perdant_id)
+
+        await add_reputation_faction(self.guild_id, gagnant_id, gagnant["faction"], MONTANT_COMBAT_VICTOIRE)
+        await increment_quest_progress(self.guild_id, gagnant_id, "combattre_victoire")
+
+        pool = get_pool()
+        if gagnant["faction"] == "Marine" and perdant["faction"] != "Marine":
+            async with pool.acquire() as conn:
+                perdant_row = await conn.fetchrow("SELECT prime FROM players WHERE guild_id=$1 AND user_id=$2", self.guild_id, perdant_id)
+                reduction = round(perdant_row["prime"] * 0.20)
+                if reduction > 0:
+                    await conn.execute("UPDATE players SET prime = GREATEST(0, prime - $3) WHERE guild_id=$1 AND user_id=$2", self.guild_id, perdant_id, reduction)
+                    message += f"\n⚓ La Marine réduit la prime de **{perdant['name']}** de **{reduction:,}฿** !"
+
         self.log.append(message)
         embed = self.build_embed()
         embed.color = 0x27AE60
         await self.message.edit(embed=embed, view=self)
+
+        await notifier_progression_hors_combat(self.message.channel, self.guild_id, gagnant_id, gagnant.get("member"))
 
     @discord.ui.button(label="Attaque", emoji="⚔️", style=discord.ButtonStyle.danger)
     async def attaque(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -81,7 +144,14 @@ class TournamentMatchView(discord.ui.View):
             defenseur["defense_active"] = False
 
         defenseur["pv"] -= degats
-        self.log.append(f"**{attaquant['name']}** inflige **{degats}** dégâts à **{defenseur['name']}** !")
+        message_attaque = f"**{attaquant['name']}** inflige **{degats}** dégâts à **{defenseur['name']}** !"
+
+        nouveau_palier = await progresser_maitrise(self.guild_id, attaquant_id, attaquant["eff"].get("type_arme_equipee"))
+        if nouveau_palier is not None:
+            label = MAITRISE_LABELS.get(attaquant["eff"].get("type_arme_equipee"), "?")
+            message_attaque += f"\n💪 Maîtrise de **{attaquant['name']}** en **{label}** progresse !"
+
+        self.log.append(message_attaque)
 
         if defenseur["pv"] <= 0:
             await self.terminer(attaquant_id, f"**{defenseur['name']}** est éliminé(e) du tournoi !")
@@ -153,6 +223,10 @@ class TournoiInscriptionView(discord.ui.View):
         if player is None:
             await interaction.response.send_message("Tu n'as pas encore de personnage ! Lance `/commencer` d'abord.", ephemeral=True)
             return
+        ko_restant = get_ko_restant(player)
+        if ko_restant:
+            await interaction.response.send_message(f"😵 Tu es encore K.O. pendant **{ko_restant} minute(s)**, trop blessé(e) pour un tournoi.", ephemeral=True)
+            return
 
         self.participants[interaction.user.id] = interaction.user
 
@@ -173,7 +247,8 @@ async def creer_participant(guild_id, member):
     p_data = await get_player(guild_id, member.id)
     eff = await get_effective_stats(guild_id, member.id, p_data)
     pv_max = p_data["pv_max"] + eff["bonus_pv_combat"]
-    return {"id": member.id, "name": member.display_name, "member": member, "eff": eff, "pv": pv_max, "pv_max": pv_max, "defense_active": False}
+    return {"id": member.id, "name": member.display_name, "member": member, "faction": p_data["faction"],
+            "eff": eff, "pv": pv_max, "pv_max": pv_max, "defense_active": False}
 
 
 async def jouer_match(channel, guild_id, p1, p2, round_label):
@@ -193,6 +268,10 @@ async def tournoi(interaction: discord.Interaction):
     player = await get_player(interaction.guild_id, interaction.user.id)
     if player is None:
         await interaction.followup.send("Tu n'as pas encore de personnage ! Lance `/commencer` pour débuter l'aventure 🏴‍☠️")
+        return
+    ko_restant = get_ko_restant(player)
+    if ko_restant:
+        await interaction.followup.send(f"😵 Tu es encore K.O. pendant **{ko_restant} minute(s)**, trop blessé(e) pour organiser un tournoi.")
         return
 
     view = TournoiInscriptionView(interaction.guild_id, interaction.user)
