@@ -54,7 +54,7 @@ class BrasDeFerPvEView(discord.ui.View):
 
     def build_embed(self, message: str = None):
         embed = discord.Embed(title=f"💪 Bras de fer contre {self.adversaire['nom']}", color=0xC0392B)
-        embed.description = message or "Vos mains se serrent sur la table, la tension monte..."
+        embed.description = message or "Vos mains se serrent sur la table, la tension monte... **Pousser fermement** est régulier, **Feinte surprise** a la même moyenne mais peut faire beaucoup gagner... ou beaucoup perdre."
         embed.add_field(name="Toi ⬅️ ———— ➡️ Adversaire", value=barre(self.position), inline=False)
         embed.set_footer(text="🌊 One Piece Bot • Défis de taverne")
         return embed
@@ -82,21 +82,30 @@ class BrasDeFerPvEView(discord.ui.View):
         await self.message.edit(embed=embed, view=self)
         return niveaux_gagnes, nouveau_niveau
 
-    @discord.ui.button(label="Pousser !", emoji="💪", style=discord.ButtonStyle.danger)
-    async def pousser(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
+    async def pousser_mode(self, interaction, mode):
         if self.termine:
             return
 
         reussite = random.randint(1, 100) > self.adversaire["difficulte"] - (self.force_joueur // 3)
-        if reussite:
-            gain = random.randint(8, 15)
-            self.position += gain
-            message = f"Tu {random.choice(REACTIONS_BON_TIMING)}"
+
+        if mode == "ferme":
+            if reussite:
+                gain = random.randint(8, 15)
+                self.position += gain
+                message = f"Tu {random.choice(REACTIONS_BON_TIMING)}"
+            else:
+                perte = random.randint(5, 12)
+                self.position -= perte
+                message = f"Tu {random.choice(REACTIONS_MAUVAIS_TIMING)}"
         else:
-            perte = random.randint(5, 12)
-            self.position -= perte
-            message = f"Tu {random.choice(REACTIONS_MAUVAIS_TIMING)}"
+            if reussite:
+                gain = random.randint(2, 25)
+                self.position += gain
+                message = f"🎲 Feinte payante ! Tu {random.choice(REACTIONS_BON_TIMING)}"
+            else:
+                perte = random.randint(0, 20)
+                self.position -= perte
+                message = f"🎲 Feinte hasardeuse... Tu {random.choice(REACTIONS_MAUVAIS_TIMING)}"
 
         if self.position >= 100:
             niveaux_gagnes, nouveau_niveau = await self.finir(True, "🎉 Tu plaques le bras de ton adversaire sur la table !")
@@ -108,6 +117,16 @@ class BrasDeFerPvEView(discord.ui.View):
             return
 
         await self.message.edit(embed=self.build_embed(message), view=self)
+
+    @discord.ui.button(label="Pousser fermement", emoji="💪", style=discord.ButtonStyle.primary)
+    async def pousser_ferme(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.pousser_mode(interaction, "ferme")
+
+    @discord.ui.button(label="Feinte surprise", emoji="🎲", style=discord.ButtonStyle.danger)
+    async def pousser_feinte(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.pousser_mode(interaction, "feinte")
 
     async def on_timeout(self):
         for c in self.children:
@@ -137,9 +156,9 @@ class BrasDeFerPvPView(discord.ui.View):
 
     def build_embed(self, message: str = None):
         embed = discord.Embed(title=f"💪 Bras de fer — {self.p1['name']} VS {self.p2['name']}", color=0x8E44AD)
-        embed.description = message or "Les deux adversaires serrent les dents, la table tremble déjà..."
+        embed.description = message or "Les deux adversaires serrent les dents ! **Pousser fermement** est régulier, **Feinte surprise** a la même moyenne mais peut faire beaucoup gagner... ou beaucoup perdre."
         embed.add_field(name=f"{self.p1['name']} ⬅️ ———— ➡️ {self.p2['name']}", value=barre(self.position), inline=False)
-        embed.set_footer(text="🌊 One Piece Bot • Défis de taverne • Cliquez tous les deux sur Pousser !")
+        embed.set_footer(text="🌊 One Piece Bot • Défis de taverne • Cliquez tous les deux sur une action !")
         return embed
 
     async def finir(self, interaction, gagnant, perdant, message):
@@ -167,9 +186,7 @@ class BrasDeFerPvPView(discord.ui.View):
         if niveaux_p > 0:
             await announce_level_up(interaction, perdant["member"], niveau_p)
 
-    @discord.ui.button(label="Pousser !", emoji="💪", style=discord.ButtonStyle.danger)
-    async def pousser(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
+    async def pousser_mode(self, interaction, mode):
         if self.termine:
             return
 
@@ -178,7 +195,18 @@ class BrasDeFerPvPView(discord.ui.View):
         sens = 1 if joueur is self.p1 else -1
 
         avantage = (joueur["force"] - adversaire["force"]) // 4
-        effort = random.randint(5, 15) + max(-8, min(8, avantage))
+        if mode == "ferme":
+            effort = random.randint(5, 15) + max(-8, min(8, avantage))
+            message = f"**{joueur['name']}** pousse fermement de toutes ses forces !"
+        else:
+            effort = random.randint(-5, 25) + max(-8, min(8, avantage))
+            if effort >= 20:
+                message = f"🎲 **{joueur['name']}** place une feinte parfaite, l'adversaire recule !"
+            elif effort <= -3:
+                message = f"🎲 **{joueur['name']}** rate sa feinte et perd du terrain !"
+            else:
+                message = f"🎲 **{joueur['name']}** tente une feinte hasardeuse !"
+
         self.position += sens * effort
 
         if self.position >= 100:
@@ -190,7 +218,17 @@ class BrasDeFerPvPView(discord.ui.View):
             await self.finir(interaction, self.p2, self.p1, f"**{self.p2['name']}** plaque le bras de **{self.p1['name']}** sur la table !")
             return
 
-        await self.message.edit(embed=self.build_embed(f"**{joueur['name']}** pousse de toutes ses forces !"), view=self)
+        await self.message.edit(embed=self.build_embed(message), view=self)
+
+    @discord.ui.button(label="Pousser fermement", emoji="💪", style=discord.ButtonStyle.primary)
+    async def pousser_ferme(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.pousser_mode(interaction, "ferme")
+
+    @discord.ui.button(label="Feinte surprise", emoji="🎲", style=discord.ButtonStyle.danger)
+    async def pousser_feinte(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.pousser_mode(interaction, "feinte")
 
     async def on_timeout(self):
         for c in self.children:
