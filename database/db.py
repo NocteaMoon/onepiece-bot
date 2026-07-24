@@ -8,11 +8,10 @@ SALON_COLUMNS = [
     "salon_logs", "salon_moderation", "salon_rapports",
     "salon_general",
     "salon_economie", "salon_boutique",
-    "salon_exploration", "salon_combat", "salon_duel", "salon_peche", "salon_casino",
-    "salon_equipages", "salon_marine", "salon_revolutionnaires",
-    "salon_classements", "salon_quetes", "salon_succes",
-    "salon_taverne", "salon_regates", "salon_tresor", "salon_creation", "salon_guilde",
-    "salon_carnet", "salon_recompenses", "salon_cartes", "salon_entrainement",
+    "salon_exploration", "salon_combat", "salon_duel", "salon_peche", "salon_casino", "salon_entrainement",
+    "salon_equipages", "salon_marine", "salon_revolutionnaires", "salon_guilde",
+    "salon_classements", "salon_quetes", "salon_succes", "salon_recompenses", "salon_carnet", "salon_cartes",
+    "salon_taverne", "salon_regates", "salon_tresor", "salon_creation",
 ]
 
 async def init_db():
@@ -178,6 +177,7 @@ async def init_db():
         await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS respect_equipage INT DEFAULT 0")
         await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS nb_voyages_reussis INT DEFAULT 0")
         await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS secret_trouve BOOLEAN DEFAULT FALSE")
+        await conn.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS nb_minijeux_faction INT DEFAULT 0")
 
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS shop_items (
