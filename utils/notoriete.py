@@ -5,6 +5,7 @@ MONTANT_TOURNOI = 8
 MONTANT_SUCCES = 2
 MONTANT_COLLECTION = 3
 MONTANT_MINIJEU_COOP = 2
+MONTANT_DUEL = 2
 
 # (seuil, recompense_berrys, titre) — titres distincts de ceux des succès, persistés dans titres_debloques
 PALIERS_NOTORIETE = [
