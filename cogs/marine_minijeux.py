@@ -83,7 +83,77 @@ async def notifier_progression_hors_combat(interaction, uid, member):
         ))
 
 
-# ===== PATROUILLE (pas de risque physique, aucune vérif K.O.) =====
+# ===== PATROUILLE (2 approches tactiques) =====
+
+class PatrouilleApproachView(discord.ui.View):
+    def __init__(self, guild_id, user_id, player, lieu):
+        super().__init__(timeout=30)
+        self.guild_id = guild_id
+        self.user_id = user_id
+        self.player = player
+        self.lieu = lieu
+        self.termine = False
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.user_id
+
+    async def resoudre(self, interaction, approche):
+        if self.termine:
+            return
+        self.termine = True
+        for c in self.children:
+            c.disabled = True
+
+        label_evt, b_min, b_max, xp, poids = random.choices(EVENEMENTS_PATROUILLE, weights=[e[4] for e in EVENEMENTS_PATROUILLE], k=1)[0]
+        gain_base = random.randint(b_min, b_max)
+        texte_evt = random.choice(TEXTES_EVENEMENTS_PATROUILLE[label_evt])
+
+        pool = get_pool()
+        incident_texte = ""
+        if approche == "discrete":
+            approche_label = "Ronde discrète"
+            gain = round(gain_base * 0.9)
+            xp_gain = xp
+        else:
+            approche_label = "Contrôle strict"
+            gain = round(gain_base * 1.4)
+            xp_gain = round(xp * 1.2)
+            if random.random() < 0.25:
+                perte_pv = random.randint(5, 15)
+                async with pool.acquire() as conn:
+                    await conn.execute("UPDATE players SET pv = GREATEST(1, pv - $3) WHERE guild_id=$1 AND user_id=$2",
+                                        self.guild_id, self.user_id, perte_pv)
+                incident_texte = f"\n⚠️ Un individu résiste au contrôle et te blesse légèrement (-{perte_pv} PV) avant d'être maîtrisé."
+
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE players SET berrys = berrys + $3, endurance = endurance - $4 WHERE guild_id=$1 AND user_id=$2",
+                                self.guild_id, self.user_id, gain, COUT_PATROUILLE)
+        await add_xp(self.guild_id, self.user_id, xp_gain, xp_gain // 2)
+        await add_reputation_faction(self.guild_id, self.user_id, "Marine", MONTANT_COMBAT_VICTOIRE)
+        await increment_quest_progress(self.guild_id, self.user_id, "marine_minijeu")
+
+        embed = discord.Embed(
+            title="🔍 Patrouille",
+            description=f"**{approche_label}** sur {self.lieu} : {texte_evt}" + (f"\n\n**+{gain}฿**" if gain else "") + incident_texte,
+            color=0x3498DB
+        )
+        embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Marine")
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Ronde discrète", emoji="🥷", style=discord.ButtonStyle.secondary)
+    async def discrete(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.resoudre(interaction, "discrete")
+
+    @discord.ui.button(label="Contrôle strict", emoji="🛑", style=discord.ButtonStyle.danger)
+    async def strict(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.resoudre(interaction, "strict")
+
+    async def on_timeout(self):
+        if self.termine:
+            return
+        for c in self.children:
+            c.disabled = True
+
 
 @amiraute_group.command(name="patrouille", description="Effectuer une ronde de patrouille (Marine)")
 @require_salon("salon_taverne")
@@ -108,25 +178,19 @@ async def amiraute_patrouille(interaction: discord.Interaction):
 
     _last_patrouille[key] = now
     lieu = random.choice(LIEUX_PATROUILLE)
-    label, b_min, b_max, xp, poids = random.choices(EVENEMENTS_PATROUILLE, weights=[e[4] for e in EVENEMENTS_PATROUILLE], k=1)[0]
-    gain = random.randint(b_min, b_max)
-    texte = random.choice(TEXTES_EVENEMENTS_PATROUILLE[label])
 
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        await conn.execute("UPDATE players SET berrys = berrys + $3, endurance = endurance - $4 WHERE guild_id=$1 AND user_id=$2",
-                            interaction.guild_id, interaction.user.id, gain, COUT_PATROUILLE)
-    await add_xp(interaction.guild_id, interaction.user.id, xp, xp // 2)
-    await add_reputation_faction(interaction.guild_id, interaction.user.id, "Marine", MONTANT_COMBAT_VICTOIRE)
-    await increment_quest_progress(interaction.guild_id, interaction.user.id, "marine_minijeu")
-
+    view = PatrouilleApproachView(interaction.guild_id, interaction.user.id, player, lieu)
     embed = discord.Embed(
         title="🔍 Patrouille",
-        description=f"En ronde sur {lieu} : {texte}" + (f"\n\n**+{gain}฿**" if gain else ""),
-        color=0x3498DB
+        description=(
+            f"Tu arrives sur {lieu}. Quelle approche adoptes-tu ?\n\n"
+            f"🥷 **Ronde discrète** — sans risque, récompense légèrement réduite\n"
+            f"🛑 **Contrôle strict** — meilleure récompense, mais risque d'incident (perte de PV)"
+        ),
+        color=0x2C3E50
     )
     embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Marine")
-    await interaction.followup.send(embed=embed)
+    await interaction.followup.send(embed=embed, view=view)
 
 
 # ===== EXERCICE DE TIR (pas de risque physique, aucune vérif K.O.) =====
