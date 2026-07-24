@@ -413,7 +413,7 @@ async def amiraute_interrogatoire(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed, view=view)
 
 
-# ===== BATAILLE NAVALE (K.O. bloqué — combat réel) =====
+# ===== BATAILLE NAVALE (K.O. bloqué — combat réel, Tir standard/risqué) =====
 
 class BatailleJoinView(discord.ui.View):
     def __init__(self, guild_id, hote: discord.Member):
@@ -484,24 +484,33 @@ class BatailleCombatView(discord.ui.View):
 
     def build_embed(self, message=None):
         embed = discord.Embed(title=f"🚢 Bataille navale — {self.description}", color=0x3498DB)
-        embed.description = message or "Cliquez sur Tirer autant de fois que possible !"
+        embed.description = message or "**Tir standard** est régulier, **Tir risqué** a la même moyenne mais peut faire beaucoup plus... ou beaucoup moins."
         rempli = round(max(0, self.pv) / self.pv_max * 14) if self.pv_max else 0
         embed.add_field(name=f"PV du navire — {max(0, self.pv):,}/{self.pv_max:,}", value="🟦" * rempli + "⬜" * (14 - rempli), inline=False)
         embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Marine")
         return embed
 
-    @discord.ui.button(label="Tirer !", emoji="⚓", style=discord.ButtonStyle.primary)
-    async def tirer(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
+    async def tirer_mode(self, interaction, mode):
         if self.termine:
             return
         player = await get_player(self.guild_id, interaction.user.id)
         eff = await get_effective_stats(self.guild_id, interaction.user.id, player)
-        degats = max(1, round(eff["force"] * random.uniform(0.8, 1.2)))
+
+        if mode == "standard":
+            degats = max(1, round(eff["force"] * random.uniform(0.85, 1.15)))
+            message_frappe = f"**{interaction.user.display_name}** touche pour **{degats}** dégâts !"
+        else:
+            degats = max(1, round(eff["force"] * random.uniform(0.5, 1.8)))
+            if degats > round(eff["force"] * 1.3):
+                message_frappe = f"💥 **{interaction.user.display_name}** place un tir de précision dévastateur pour **{degats}** dégâts !"
+            elif degats < round(eff["force"] * 0.7):
+                message_frappe = f"**{interaction.user.display_name}** manque sa cible, seulement **{degats}** dégâts..."
+            else:
+                message_frappe = f"**{interaction.user.display_name}** touche pour **{degats}** dégâts !"
+
         self.pv -= degats
         self.degats[interaction.user.id] += degats
 
-        message_frappe = f"**{interaction.user.display_name}** touche pour **{degats}** dégâts !"
         nouveau_palier = await progresser_maitrise(self.guild_id, interaction.user.id, eff.get("type_arme_equipee"))
         if nouveau_palier is not None:
             label = MAITRISE_LABELS.get(eff.get("type_arme_equipee"), "?")
@@ -535,6 +544,16 @@ class BatailleCombatView(discord.ui.View):
             return
 
         await self.message.edit(embed=self.build_embed(message_frappe), view=self)
+
+    @discord.ui.button(label="Tir standard", emoji="⚓", style=discord.ButtonStyle.primary)
+    async def tir_standard(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.tirer_mode(interaction, "standard")
+
+    @discord.ui.button(label="Tir risqué", emoji="🎲", style=discord.ButtonStyle.danger)
+    async def tir_risque(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.tirer_mode(interaction, "risque")
 
     async def on_timeout(self):
         if self.termine:
