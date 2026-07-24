@@ -296,7 +296,7 @@ async def insurrection_infiltration(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed, view=view)
 
 
-# ===== SABOTAGE (K.O. bloqué — combat réel) =====
+# ===== SABOTAGE (K.O. bloqué — combat réel, Sabotage standard/risqué) =====
 
 class SabotageJoinView(discord.ui.View):
     def __init__(self, guild_id, hote: discord.Member):
@@ -367,24 +367,34 @@ class SabotageCombatView(discord.ui.View):
 
     def build_embed(self, message=None):
         embed = discord.Embed(title=f"💣 Sabotage — {self.description}", color=0xC0392B)
-        embed.description = message or "Cliquez sur Saboter autant de fois que possible !"
+        embed.description = message or "**Sabotage méthodique** est régulier, **Sabotage explosif** a la même moyenne mais peut faire beaucoup plus... ou beaucoup moins."
         rempli = round(max(0, self.pv) / self.pv_max * 14) if self.pv_max else 0
         embed.add_field(name=f"Progression — {max(0, self.pv):,}/{self.pv_max:,}", value="🟧" * rempli + "⬜" * (14 - rempli), inline=False)
         embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Révolutionnaires")
         return embed
 
-    @discord.ui.button(label="Saboter !", emoji="💣", style=discord.ButtonStyle.danger)
-    async def saboter(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
+    async def saboter_mode(self, interaction, mode):
         if self.termine:
             return
         player = await get_player(self.guild_id, interaction.user.id)
         eff = await get_effective_stats(self.guild_id, interaction.user.id, player)
-        degats = max(1, round((eff["agilite"] + eff["force"]) / 2 * random.uniform(0.8, 1.2)))
+        base = (eff["agilite"] + eff["force"]) / 2
+
+        if mode == "methodique":
+            degats = max(1, round(base * random.uniform(0.85, 1.15)))
+            message_frappe = f"**{interaction.user.display_name}** progresse méthodiquement de **{degats}** points !"
+        else:
+            degats = max(1, round(base * random.uniform(0.5, 1.8)))
+            if degats > round(base * 1.3):
+                message_frappe = f"💥 **{interaction.user.display_name}** place une charge explosive parfaite pour **{degats}** points !"
+            elif degats < round(base * 0.7):
+                message_frappe = f"**{interaction.user.display_name}** rate son montage, seulement **{degats}** points..."
+            else:
+                message_frappe = f"**{interaction.user.display_name}** progresse de **{degats}** points !"
+
         self.pv -= degats
         self.degats[interaction.user.id] += degats
 
-        message_frappe = f"**{interaction.user.display_name}** progresse de **{degats}** points !"
         nouveau_palier = await progresser_maitrise(self.guild_id, interaction.user.id, eff.get("type_arme_equipee"))
         if nouveau_palier is not None:
             label = MAITRISE_LABELS.get(eff.get("type_arme_equipee"), "?")
@@ -418,6 +428,16 @@ class SabotageCombatView(discord.ui.View):
             return
 
         await self.message.edit(embed=self.build_embed(message_frappe), view=self)
+
+    @discord.ui.button(label="Sabotage méthodique", emoji="🔧", style=discord.ButtonStyle.primary)
+    async def methodique(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.saboter_mode(interaction, "methodique")
+
+    @discord.ui.button(label="Sabotage explosif", emoji="🎲", style=discord.ButtonStyle.danger)
+    async def explosif(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.saboter_mode(interaction, "explosif")
 
     async def on_timeout(self):
         if self.termine:
