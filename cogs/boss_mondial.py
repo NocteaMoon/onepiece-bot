@@ -8,6 +8,12 @@ from utils.combat_stats import get_effective_stats
 from utils.channel_check import require_salon
 from utils.announcements import announce_level_up
 from utils.notoriete import add_notoriete, MONTANT_BOSS_MONDIAL
+from utils.maitrise import progresser_maitrise, LABELS as MAITRISE_LABELS
+from utils.fruits import check_eveil
+from utils.haki import check_eveil_rois
+from utils.xp_cache import check_xp_cache_paliers, STAT_LABELS
+from utils.reputation import add_reputation_faction, MONTANT_COMBAT_VICTOIRE
+from utils.quetes import increment_quest_progress
 from data.ennemis import ENNEMIS
 from data.mers import MERS
 
@@ -24,6 +30,45 @@ def barre(valeur, max_valeur, taille=14, plein="🟥", vide="⬜"):
     valeur = max(0, min(max_valeur, valeur))
     rempli = round(valeur / max_valeur * taille) if max_valeur > 0 else 0
     return plein * rempli + vide * (taille - rempli)
+
+
+def get_ko_restant(player) -> int:
+    """Retourne le nombre de minutes de K.O. restantes, ou 0 si pas K.O."""
+    if not player["ko_jusqua"]:
+        return 0
+    import datetime
+    now = datetime.datetime.utcnow()
+    if player["ko_jusqua"] <= now:
+        return 0
+    return int((player["ko_jusqua"] - now).total_seconds() // 60) + 1
+
+
+async def notifier_progression_hors_combat(interaction, guild_id, uid, member):
+    """Vérifie éveil de fruit, Haki des Rois et paliers d'XP caché après une victoire de boss mondial."""
+    if not member:
+        return
+    eveil_fruit = await check_eveil(guild_id, uid)
+    if eveil_fruit:
+        await interaction.followup.send(embed=discord.Embed(
+            title="✨ ÉVEIL !",
+            description=f"{member.mention} ressent un pouvoir immense monter en lui/elle... **Son Fruit du Démon vient de s'éveiller !**",
+            color=0x8E44AD
+        ))
+    eveil_rois = await check_eveil_rois(guild_id, uid)
+    if eveil_rois:
+        await interaction.followup.send(embed=discord.Embed(
+            title="👑 HAKI DES ROIS !",
+            description=f"Une aura écrasante émane soudain de {member.mention}... **Le Haki des Rois vient de s'éveiller en toi !**",
+            color=0xD4A017
+        ))
+    nouveaux_paliers = await check_xp_cache_paliers(guild_id, uid)
+    for seuil, berrys_palier, stat, valeur in nouveaux_paliers:
+        label = STAT_LABELS.get(stat, stat)
+        await interaction.followup.send(embed=discord.Embed(
+            title="🌟 Une force insoupçonnée grandit en toi...",
+            description=f"{member.mention} ressent une expérience cachée refaire surface : **+{berrys_palier:,}฿** et **+{valeur} {label}** de façon permanente !",
+            color=0xF4C430
+        ))
 
 
 async def get_active_boss(guild_id: int):
@@ -81,6 +126,7 @@ class WorldBossCombatView(discord.ui.View):
         prime_flat = random.randint(60, 120)
 
         lignes_recap = []
+        membres_gagnants = []
         for r in rows:
             ratio = r["degats"] / total_degats
             berrys = max(20, round(base_reward * ratio))
@@ -89,14 +135,20 @@ class WorldBossCombatView(discord.ui.View):
                 berrys = round(berrys * 1.5)
                 xp = round(xp * 1.5)
 
+            p_data = await get_player(self.guild_id, r["user_id"])
             async with pool.acquire() as conn:
                 await conn.execute(
                     "UPDATE players SET berrys = berrys + $3, prime = prime + $4, nb_boss_vaincus = nb_boss_vaincus + 1 WHERE guild_id=$1 AND user_id=$2",
                     self.guild_id, r["user_id"], berrys, prime_flat
                 )
             await add_notoriete(self.guild_id, r["user_id"], MONTANT_BOSS_MONDIAL)
+            if p_data:
+                await add_reputation_faction(self.guild_id, r["user_id"], p_data["faction"], MONTANT_COMBAT_VICTOIRE)
+            await increment_quest_progress(self.guild_id, r["user_id"], "combattre_victoire")
             niveaux, niveau = await add_xp(self.guild_id, r["user_id"], xp, xp // 2)
             member = interaction.guild.get_member(r["user_id"])
+            if member:
+                membres_gagnants.append((r["user_id"], member))
             tag_mvp = " 👑" if mvp and r["user_id"] == mvp["user_id"] else ""
             lignes_recap.append(f"{member.mention if member else r['user_id']}{tag_mvp} : +{berrys}฿, +{xp} XP")
             if niveaux > 0 and member:
@@ -106,6 +158,9 @@ class WorldBossCombatView(discord.ui.View):
         embed = self.build_embed(f"🏆 **{self.boss_nom.capitalize()}** est vaincu par les forces unies de **{self.mer}** !\n\n{recap_texte}")
         embed.color = 0x27AE60
         await self.message.edit(embed=embed, view=self)
+
+        for uid, member in membres_gagnants:
+            await notifier_progression_hors_combat(interaction, self.guild_id, uid, member)
 
     @discord.ui.button(label="Attaquer !", emoji="⚔️", style=discord.ButtonStyle.danger)
     async def attaquer(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -136,11 +191,18 @@ class WorldBossCombatView(discord.ui.View):
                 )
 
         self.pv = row["pv"]
+        message_frappe = f"**{interaction.user.display_name}** frappe pour **{degats}** dégâts !"
+
+        nouveau_palier = await progresser_maitrise(self.guild_id, interaction.user.id, eff.get("type_arme_equipee"))
+        if nouveau_palier is not None:
+            label = MAITRISE_LABELS.get(eff.get("type_arme_equipee"), "?")
+            message_frappe += f"\n💪 Maîtrise en **{label}** progresse !"
+
         if self.pv <= 0:
             await self.victoire(interaction)
             return
 
-        await self.message.edit(embed=self.build_embed(f"**{interaction.user.display_name}** frappe pour **{degats}** dégâts !"), view=self)
+        await self.message.edit(embed=self.build_embed(message_frappe), view=self)
 
     async def on_timeout(self):
         if self.termine:
@@ -195,6 +257,10 @@ class WorldBossInscriptionView(discord.ui.View):
         player = await get_player(self.guild_id, interaction.user.id)
         if player is None:
             await interaction.response.send_message("Tu n'as pas encore de personnage ! Lance `/commencer` d'abord.", ephemeral=True)
+            return
+        ko_restant = get_ko_restant(player)
+        if ko_restant:
+            await interaction.response.send_message(f"😵 Tu es encore K.O. pendant **{ko_restant} minute(s)**, trop blessé(e) pour rejoindre ce combat.", ephemeral=True)
             return
         if player["mer"] != self.mer:
             await interaction.response.send_message(f"⛔ Tu dois être sur **{self.mer}** pour rejoindre ce combat (utilise `/voyager`).", ephemeral=True)
