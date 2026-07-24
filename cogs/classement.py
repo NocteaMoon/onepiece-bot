@@ -4,6 +4,7 @@ from database.db import get_pool
 from utils.channel_check import require_salon
 
 CREW_TYPE_EMOJIS = {"Pirate": "🏴‍☠️", "Marine": "⚓", "Revolution": "🔥", "Guilde": "🧵"}
+FACTION_EMOJIS = {"Pirate": "🏴‍☠️", "Marine": "⚓", "Révolutionnaire": "🔥", "Civil": "🏘️"}
 
 
 async def embed_richesse(guild_id, guild):
@@ -79,6 +80,70 @@ async def embed_notoriete(guild_id, guild):
     return embed
 
 
+async def embed_reputation(guild_id, guild):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT user_id, rep_pirates, rep_marine, rep_revolutionnaires, rep_civils,
+                   GREATEST(rep_pirates, rep_marine, rep_revolutionnaires, rep_civils) AS rep_max
+            FROM players WHERE guild_id=$1 ORDER BY rep_max DESC LIMIT 10
+        """, guild_id)
+    embed = discord.Embed(title="🤝 Classement — Réputation", color=0x16A085)
+    lignes = []
+    for i, r in enumerate(rows):
+        if r["rep_max"] <= 0:
+            continue
+        member = guild.get_member(r["user_id"])
+        nom = member.display_name if member else f"Joueur {r['user_id']}"
+        detail = {
+            "Pirate": r["rep_pirates"], "Marine": r["rep_marine"],
+            "Révolutionnaire": r["rep_revolutionnaires"], "Civil": r["rep_civils"],
+        }
+        faction_top = max(detail, key=detail.get)
+        emoji = FACTION_EMOJIS.get(faction_top, "🤝")
+        lignes.append(f"**{i+1}.** {nom} — {emoji} {r['rep_max']:,} pts ({faction_top})")
+    embed.description = "\n".join(lignes) if lignes else "Aucune donnée pour l'instant."
+    embed.set_footer(text="🌊 One Piece Bot • Classements")
+    return embed
+
+
+async def embed_respect(guild_id, guild):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT user_id, respect_equipage FROM players WHERE guild_id=$1 AND respect_equipage > 0 ORDER BY respect_equipage DESC LIMIT 10",
+            guild_id
+        )
+    embed = discord.Embed(title="🏴‍☠️ Classement — Respect d'équipage", color=0x6C3483)
+    lignes = []
+    for i, r in enumerate(rows):
+        member = guild.get_member(r["user_id"])
+        nom = member.display_name if member else f"Joueur {r['user_id']}"
+        lignes.append(f"**{i+1}.** {nom} — {r['respect_equipage']:,} pts")
+    embed.description = "\n".join(lignes) if lignes else "Aucune donnée pour l'instant."
+    embed.set_footer(text="🌊 One Piece Bot • Classements")
+    return embed
+
+
+async def embed_cartes(guild_id, guild):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT user_id, COUNT(DISTINCT code) AS nb_cartes
+            FROM cards_owned WHERE guild_id=$1
+            GROUP BY user_id ORDER BY nb_cartes DESC LIMIT 10
+        """, guild_id)
+    embed = discord.Embed(title="🃏 Classement — Collection de cartes", color=0xD35400)
+    lignes = []
+    for i, r in enumerate(rows):
+        member = guild.get_member(r["user_id"])
+        nom = member.display_name if member else f"Joueur {r['user_id']}"
+        lignes.append(f"**{i+1}.** {nom} — {r['nb_cartes']}/143 cartes")
+    embed.description = "\n".join(lignes) if lignes else "Aucune donnée pour l'instant."
+    embed.set_footer(text="🌊 One Piece Bot • Classements")
+    return embed
+
+
 async def embed_organisations(guild_id, guild):
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -108,6 +173,9 @@ CATEGORIES = {
     "prime": embed_prime,
     "niveau": embed_niveau,
     "notoriete": embed_notoriete,
+    "reputation": embed_reputation,
+    "respect": embed_respect,
+    "cartes": embed_cartes,
     "organisations": embed_organisations,
 }
 
@@ -119,6 +187,9 @@ class ClassementSelect(discord.ui.Select):
             discord.SelectOption(label="Prime", value="prime", emoji="☠️"),
             discord.SelectOption(label="Niveau", value="niveau", emoji="📈"),
             discord.SelectOption(label="Notoriété", value="notoriete", emoji="🌟"),
+            discord.SelectOption(label="Réputation", value="reputation", emoji="🤝"),
+            discord.SelectOption(label="Respect d'équipage", value="respect", emoji="🏴‍☠️"),
+            discord.SelectOption(label="Collection de cartes", value="cartes", emoji="🃏"),
             discord.SelectOption(label="Organisations", value="organisations", emoji="🏴‍☠️"),
         ]
         super().__init__(placeholder="Choisis un classement...", options=options, custom_id="classement_select")
