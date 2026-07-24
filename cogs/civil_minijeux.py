@@ -154,7 +154,7 @@ async def atelier_rapidite(interaction: discord.Interaction):
     asyncio.create_task(view.lancer_signal())
 
 
-# ===== CONCOURS D'ARTISANAT =====
+# ===== CONCOURS D'ARTISANAT (2 techniques tactiques) =====
 
 async def ingredient_autocomplete(interaction: discord.Interaction, current: str):
     pool = get_pool()
@@ -166,6 +166,102 @@ async def ingredient_autocomplete(interaction: discord.Interaction, current: str
         """, interaction.guild_id, interaction.user.id)
     filtered = [r for r in rows if current.lower() in r["nom"].lower()][:25]
     return [app_commands.Choice(name=f"{r['nom']} x{r['quantite']} ({r['rarete']})", value=r["inv_id"]) for r in filtered]
+
+
+class ArtisanatTechniqueView(discord.ui.View):
+    def __init__(self, guild_id, user_id, inv_id, item_nom, item_rarete):
+        super().__init__(timeout=30)
+        self.guild_id = guild_id
+        self.user_id = user_id
+        self.inv_id = inv_id
+        self.item_nom = item_nom
+        self.item_rarete = item_rarete
+        self.termine = False
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.user_id
+
+    async def resoudre(self, interaction, technique):
+        if self.termine:
+            return
+        self.termine = True
+        for c in self.children:
+            c.disabled = True
+
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            inv_row = await conn.fetchrow("SELECT quantite FROM inventory WHERE id=$1", self.inv_id)
+            if not inv_row or inv_row["quantite"] <= 0:
+                await interaction.response.edit_message(content="Cet ingrédient n'est plus dans ton inventaire.", embed=None, view=None)
+                return
+            async with conn.transaction():
+                if inv_row["quantite"] > 1:
+                    await conn.execute("UPDATE inventory SET quantite = quantite - 1 WHERE id=$1", self.inv_id)
+                else:
+                    await conn.execute("DELETE FROM inventory WHERE id=$1", self.inv_id)
+
+        b_min, b_max, chance_chef_oeuvre = RARETE_RECOMPENSE_ARTISANAT.get(self.item_rarete, (15, 30, 0.05))
+        await increment_quest_progress(self.guild_id, self.user_id, "civil_minijeu")
+
+        if technique == "prudente":
+            label = "Technique prudente"
+            gain = random.randint(b_min, b_max)
+            chef_oeuvre = random.random() < chance_chef_oeuvre
+            if chef_oeuvre:
+                gain = round(gain * 3)
+            await self._appliquer_gain(interaction, gain, chef_oeuvre, label)
+        else:
+            label = "Technique audacieuse"
+            if random.random() < 0.30:
+                embed = discord.Embed(
+                    title="🔨 Échec de fabrication...",
+                    description=f"Ta **{label}** avec **{self.item_nom}** échoue complètement — le matériau est irrécupérable, aucune récompense.",
+                    color=0x7F0000
+                )
+                embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Civils")
+                await interaction.response.edit_message(embed=embed, view=self)
+                return
+            gain = round(random.randint(b_min, b_max) * 1.3)
+            chef_oeuvre = random.random() < min(0.5, chance_chef_oeuvre * 2)
+            if chef_oeuvre:
+                gain = round(gain * 3)
+            await self._appliquer_gain(interaction, gain, chef_oeuvre, label)
+
+    async def _appliquer_gain(self, interaction, gain, chef_oeuvre, label):
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", self.guild_id, self.user_id, gain)
+        await add_xp(self.guild_id, self.user_id, 15 + (15 if chef_oeuvre else 0), 6)
+        await add_reputation_faction(self.guild_id, self.user_id, "Civil", MONTANT_COMBAT_VICTOIRE)
+
+        if chef_oeuvre:
+            embed = discord.Embed(
+                title="🏆 CHEF-D'ŒUVRE !",
+                description=f"Par **{label}**, ta pièce faite à partir de **{self.item_nom}** émerveille le jury ! Récompense exceptionnelle : **{gain:,}฿** !",
+                color=0xF1C40F
+            )
+        else:
+            embed = discord.Embed(
+                title="🔨 Concours d'artisanat",
+                description=f"Par **{label}**, ta pièce à base de **{self.item_nom}** est bien reçue par le jury. Récompense : **{gain:,}฿**.",
+                color=0x27AE60
+            )
+        embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Civils")
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Technique prudente", emoji="🖐️", style=discord.ButtonStyle.secondary)
+    async def prudente(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.resoudre(interaction, "prudente")
+
+    @discord.ui.button(label="Technique audacieuse", emoji="🔥", style=discord.ButtonStyle.danger)
+    async def audacieuse(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.resoudre(interaction, "audacieuse")
+
+    async def on_timeout(self):
+        if self.termine:
+            return
+        for c in self.children:
+            c.disabled = True
 
 
 @atelier_group.command(name="artisanat", description="Présenter un ingrédient à un concours d'artisanat (Civil)")
@@ -202,39 +298,19 @@ async def atelier_artisanat(interaction: discord.Interaction, ingredient: int):
             await interaction.followup.send("Cet objet n'est pas un ingrédient valide pour ce concours.")
             return
 
-        async with conn.transaction():
-            if inv_row["quantite"] > 1:
-                await conn.execute("UPDATE inventory SET quantite = quantite - 1 WHERE id=$1", inv_row["id"])
-            else:
-                await conn.execute("DELETE FROM inventory WHERE id=$1", inv_row["id"])
-
     _last_artisanat[key] = now
-    b_min, b_max, chance_chef_oeuvre = RARETE_RECOMPENSE_ARTISANAT.get(item["rarete"], (15, 30, 0.05))
-    gain = random.randint(b_min, b_max)
-    chef_oeuvre = random.random() < chance_chef_oeuvre
-    if chef_oeuvre:
-        gain = round(gain * 3)
-
-    async with pool.acquire() as conn:
-        await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, interaction.user.id, gain)
-    await add_xp(interaction.guild_id, interaction.user.id, 15 + (15 if chef_oeuvre else 0), 6)
-    await add_reputation_faction(interaction.guild_id, interaction.user.id, "Civil", MONTANT_COMBAT_VICTOIRE)
-    await increment_quest_progress(interaction.guild_id, interaction.user.id, "civil_minijeu")
-
-    if chef_oeuvre:
-        embed = discord.Embed(
-            title="🏆 CHEF-D'ŒUVRE !",
-            description=f"Ta pièce faite à partir de **{item['nom']}** émerveille le jury ! Récompense exceptionnelle : **{gain:,}฿** !",
-            color=0xF1C40F
-        )
-    else:
-        embed = discord.Embed(
-            title="🔨 Concours d'artisanat",
-            description=f"Ta pièce à base de **{item['nom']}** est bien reçue par le jury. Récompense : **{gain:,}฿**.",
-            color=0x27AE60
-        )
+    view = ArtisanatTechniqueView(interaction.guild_id, interaction.user.id, inv_row["id"], item["nom"], item["rarete"])
+    embed = discord.Embed(
+        title="🔨 Concours d'artisanat",
+        description=(
+            f"Tu prépares **{item['nom']}** ({item['rarete']}). Quelle technique adoptes-tu ?\n\n"
+            f"🖐️ **Technique prudente** — résultat garanti, chance de chef-d'œuvre normale\n"
+            f"🔥 **Technique audacieuse** — 30% de tout perdre, mais si ça réussit : +30% de récompense et chance de chef-d'œuvre doublée"
+        ),
+        color=0x2C3E50
+    )
     embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Civils")
-    await interaction.followup.send(embed=embed)
+    await interaction.followup.send(embed=embed, view=view)
 
 
 # ===== NÉGOCIATION =====
