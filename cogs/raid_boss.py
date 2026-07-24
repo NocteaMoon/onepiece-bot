@@ -1,12 +1,19 @@
 import discord
 from discord import app_commands
 import random
+import datetime
 from database.db import get_pool
 from utils.players import get_player, add_xp
 from utils.combat_stats import get_effective_stats
 from utils.channel_check import require_salon
 from utils.announcements import announce_level_up
 from utils.maitrise import progresser_maitrise, LABELS as MAITRISE_LABELS
+from utils.fruits import check_eveil
+from utils.haki import check_eveil_rois
+from utils.xp_cache import check_xp_cache_paliers, STAT_LABELS
+from utils.reputation import add_reputation_faction, MONTANT_COMBAT_VICTOIRE
+from utils.quetes import increment_quest_progress
+from utils.notoriete import add_notoriete, MONTANT_RAID_BOSS
 from data.ennemis import ENNEMIS
 
 COUT_ENDURANCE = 25
@@ -18,6 +25,44 @@ def barre(valeur, max_valeur, taille=12, plein="🟥", vide="⬜"):
     valeur = max(0, min(max_valeur, valeur))
     rempli = round(valeur / max_valeur * taille) if max_valeur > 0 else 0
     return plein * rempli + vide * (taille - rempli)
+
+
+def get_ko_restant(player) -> int:
+    """Retourne le nombre de minutes de K.O. restantes, ou 0 si pas K.O."""
+    if not player["ko_jusqua"]:
+        return 0
+    now = datetime.datetime.utcnow()
+    if player["ko_jusqua"] <= now:
+        return 0
+    return int((player["ko_jusqua"] - now).total_seconds() // 60) + 1
+
+
+async def notifier_progression_hors_combat(interaction, guild_id, uid, member):
+    """Vérifie éveil de fruit, Haki des Rois et paliers d'XP caché après une victoire de raid."""
+    if not member:
+        return
+    eveil_fruit = await check_eveil(guild_id, uid)
+    if eveil_fruit:
+        await interaction.followup.send(embed=discord.Embed(
+            title="✨ ÉVEIL !",
+            description=f"{member.mention} ressent un pouvoir immense monter en lui/elle... **Son Fruit du Démon vient de s'éveiller !**",
+            color=0x8E44AD
+        ))
+    eveil_rois = await check_eveil_rois(guild_id, uid)
+    if eveil_rois:
+        await interaction.followup.send(embed=discord.Embed(
+            title="👑 HAKI DES ROIS !",
+            description=f"Une aura écrasante émane soudain de {member.mention}... **Le Haki des Rois vient de s'éveiller en toi !**",
+            color=0xD4A017
+        ))
+    nouveaux_paliers = await check_xp_cache_paliers(guild_id, uid)
+    for seuil, berrys_palier, stat, valeur in nouveaux_paliers:
+        label = STAT_LABELS.get(stat, stat)
+        await interaction.followup.send(embed=discord.Embed(
+            title="🌟 Une force insoupçonnée grandit en toi...",
+            description=f"{member.mention} ressent une expérience cachée refaire surface : **+{berrys_palier:,}฿** et **+{valeur} {label}** de façon permanente !",
+            color=0xF4C430
+        ))
 
 
 class RaidBossView(discord.ui.View):
@@ -75,6 +120,9 @@ class RaidBossView(discord.ui.View):
         for p in self.participants:
             xp = 60 if p["id"] == mvp_id else 45
             niveaux, niveau = await add_xp(self.guild_id, p["id"], xp, xp // 2)
+            await add_reputation_faction(self.guild_id, p["id"], p["faction"], MONTANT_COMBAT_VICTOIRE)
+            await add_notoriete(self.guild_id, p["id"], MONTANT_RAID_BOSS)
+            await increment_quest_progress(self.guild_id, p["id"], "combattre_victoire")
             if niveaux > 0:
                 await announce_level_up(interaction, p["member"], niveau)
 
@@ -84,6 +132,9 @@ class RaidBossView(discord.ui.View):
         )
         embed.color = 0x27AE60
         await self.message.edit(embed=embed, view=self)
+
+        for p in self.participants:
+            await notifier_progression_hors_combat(interaction, self.guild_id, p["id"], p["member"])
 
     async def echec(self):
         self.termine = True
@@ -187,6 +238,10 @@ class RaidInscriptionView(discord.ui.View):
         if player is None:
             await interaction.response.send_message("Tu n'as pas encore de personnage ! Lance `/commencer` d'abord.", ephemeral=True)
             return
+        ko_restant = get_ko_restant(player)
+        if ko_restant:
+            await interaction.response.send_message(f"😵 Tu es encore K.O. pendant **{ko_restant} minute(s)**, trop blessé(e) pour rejoindre un raid.", ephemeral=True)
+            return
         if player["mer"] != self.mer:
             await interaction.response.send_message(f"⛔ Tu dois être sur **{self.mer}** pour rejoindre ce raid.", ephemeral=True)
             return
@@ -216,7 +271,7 @@ class RaidInscriptionView(discord.ui.View):
                     "UPDATE players SET endurance = endurance - $3 WHERE guild_id=$1 AND user_id=$2",
                     self.guild_id, uid, COUT_ENDURANCE
                 )
-                participants_data.append({"id": uid, "name": member.display_name, "member": member, "eff": eff})
+                participants_data.append({"id": uid, "name": member.display_name, "member": member, "faction": p_data["faction"], "eff": eff})
         return participants_data, boss_template["nom"], boss_pv
 
     async def lancer(self, interaction):
@@ -263,6 +318,10 @@ async def raid_boss(interaction: discord.Interaction):
     player = await get_player(interaction.guild_id, interaction.user.id)
     if player is None:
         await interaction.followup.send("Tu n'as pas encore de personnage ! Lance `/commencer` pour débuter l'aventure 🏴‍☠️")
+        return
+    ko_restant = get_ko_restant(player)
+    if ko_restant:
+        await interaction.followup.send(f"😵 Tu es encore K.O. pendant **{ko_restant} minute(s)**, trop blessé(e) pour organiser un raid. Repose-toi ou fais appel à un Médecin !")
         return
     if player["endurance"] < COUT_ENDURANCE:
         await interaction.followup.send(f"😮‍💨 Il te faut {COUT_ENDURANCE} endurance pour organiser un raid.")
