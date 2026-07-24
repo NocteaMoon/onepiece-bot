@@ -52,6 +52,13 @@ CHAMP_CHOICES_DASH = [
     ("Durabilité max", "durabilite_max"), ("Actif (oui/non)", "actif"),
 ]
 
+FACTION_SALON_MAP = {
+    "Pirate": "salon_equipages",
+    "Marine": "salon_marine",
+    "Révolutionnaire": "salon_revolutionnaires",
+    "Civil": "salon_guilde",
+}
+
 
 # ===== ACCUEIL =====
 
@@ -282,7 +289,7 @@ async def build_langue_embed(guild_id: int):
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT lang FROM guild_config WHERE guild_id=$1", guild_id)
     langue_actuelle = row["lang"] if row else "fr"
-    label = "Français 🇫🇷" if langue_actuelle == "fr" else "English 🇬🇧"
+    label = "Français 🇫" if langue_actuelle == "fr" else "English 🇬🇧"
     embed = discord.Embed(title="🌐 Langue", description=f"Langue actuelle : **{label}**", color=0x2C3E50)
     embed.set_footer(text="🌊 One Piece Bot • Dashboard")
     return embed
@@ -1338,7 +1345,7 @@ async def build_faction_roles_embed(guild_id: int):
         lignes.append(f"**{label}** : {statut}")
     embed = discord.Embed(
         title="🎭 Rôles de faction",
-        description="\n".join(lignes) + "\n\nPurement visuel/social — n'affecte jamais l'accès aux commandes.",
+        description="\n".join(lignes) + "\n\nAttribués automatiquement à `/commencer`. Le bouton 🔒 ci-dessous verrouille en plus les 4 salons d'organisation (équipages/marine/révolutionnaires/guilde) pour que seule la faction concernée puisse les voir.",
         color=0x2C3E50
     )
     embed.set_footer(text="🌊 One Piece Bot • Dashboard")
@@ -1405,12 +1412,70 @@ class FactionPickSelect(discord.ui.Select):
         await interaction.response.edit_message(embed=embed, view=view)
 
 
+async def lock_organisation_channels(guild):
+    """Verrouille les 4 salons d'organisation sur leur rôle de faction (+ rôles mod). Retourne une liste de messages de résultat."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        config_row = await conn.fetchrow("SELECT * FROM guild_config WHERE guild_id=$1", guild.id)
+        mod_roles_rows = await conn.fetch(
+            "SELECT role_id FROM guild_command_roles WHERE guild_id=$1 AND command_group='mod'", guild.id
+        )
+    role_ids = await get_faction_role_ids(guild.id)
+    mod_role_objects = [guild.get_role(r["role_id"]) for r in mod_roles_rows]
+    mod_role_objects = [r for r in mod_role_objects if r]
+
+    resultats = []
+    for faction, salon_col in FACTION_SALON_MAP.items():
+        label = FACTION_ROLE_NAMES.get(faction, faction)
+        role_id = role_ids.get(faction)
+        salon_id = config_row[salon_col] if config_row else None
+
+        if not role_id:
+            resultats.append(f"❌ {label} : rôle de faction non lié (section 🎭 ci-dessus)")
+            continue
+        if not salon_id:
+            resultats.append(f"❌ {label} : salon non configuré (section 🗺️ Salons)")
+            continue
+
+        role = guild.get_role(role_id)
+        channel = guild.get_channel(salon_id)
+        if not role or not channel:
+            resultats.append(f"❌ {label} : rôle ou salon introuvable (supprimé côté Discord ?)")
+            continue
+
+        try:
+            await channel.set_permissions(guild.default_role, view_channel=False)
+            await channel.set_permissions(role, view_channel=True)
+            for mod_role in mod_role_objects:
+                await channel.set_permissions(mod_role, view_channel=True)
+            resultats.append(f"✅ {label} → {channel.mention} verrouillé sur {role.mention}")
+        except discord.Forbidden:
+            resultats.append(f"❌ {label} : le bot n'a pas la permission **Gérer les salons**")
+        except discord.HTTPException as e:
+            resultats.append(f"❌ {label} : erreur ({e})")
+
+    return resultats
+
+
+class OrgChannelsLockButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Verrouiller les 4 salons d'organisation", emoji="🔒", style=discord.ButtonStyle.danger)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        resultats = await lock_organisation_channels(interaction.guild)
+        embed = await build_faction_roles_embed(interaction.guild_id)
+        embed.add_field(name="🔒 Résultat du verrouillage", value="\n".join(resultats), inline=False)
+        await interaction.edit_original_response(embed=embed, view=DashboardFactionRolesView())
+
+
 class DashboardFactionRolesView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=180)
         self.add_item(FactionPickSelect())
         self.add_item(FactionRoleCreateButton())
         self.add_item(FactionRoleSyncButton())
+        self.add_item(OrgChannelsLockButton())
         self.add_item(DashboardBackHomeButton())
 
 
