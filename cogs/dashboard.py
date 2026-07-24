@@ -59,6 +59,12 @@ FACTION_SALON_MAP = {
     "Civil": "salon_guilde",
 }
 
+CODES_MINIJEUX_FACTION = ["pirate_minijeu", "marine_minijeu", "revolution_minijeu", "civil_minijeu"]
+CODE_MINIJEU_PAR_FACTION = {
+    "Pirate": "pirate_minijeu", "Marine": "marine_minijeu",
+    "Révolutionnaire": "revolution_minijeu", "Civil": "civil_minijeu",
+}
+
 
 # ===== ACCUEIL =====
 
@@ -271,7 +277,7 @@ class LangueSelect(discord.ui.Select):
                 INSERT INTO guild_config (guild_id, lang) VALUES ($1, $2)
                 ON CONFLICT (guild_id) DO UPDATE SET lang = $2
             """, interaction.guild_id, langue)
-        label = "Français 🇫🇷" if langue == "fr" else "English 🇬🇧"
+        label = "Français 🇫🇷" if langue == "fr" else "English 🇬"
         embed = discord.Embed(title="🌐 Langue mise à jour !", description=f"Langue définie sur **{label}**.", color=0x27AE60)
         embed.set_footer(text="🌊 One Piece Bot • Dashboard")
         await interaction.response.edit_message(embed=embed, view=DashboardLangueView())
@@ -289,7 +295,7 @@ async def build_langue_embed(guild_id: int):
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT lang FROM guild_config WHERE guild_id=$1", guild_id)
     langue_actuelle = row["lang"] if row else "fr"
-    label = "Français 🇫" if langue_actuelle == "fr" else "English 🇬🇧"
+    label = "Français 🇫🇷" if langue_actuelle == "fr" else "English 🇬🇧"
     embed = discord.Embed(title="🌐 Langue", description=f"Langue actuelle : **{label}**", color=0x2C3E50)
     embed.set_footer(text="🌊 One Piece Bot • Dashboard")
     return embed
@@ -980,6 +986,7 @@ class JoueurFactionSelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         faction = self.values[0]
         pool = get_pool()
+        nb_quetes_purgees = 0
         async with pool.acquire() as conn:
             row = await conn.fetchrow("SELECT equipage_id, metier FROM players WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id)
             async with conn.transaction():
@@ -988,8 +995,30 @@ class JoueurFactionSelect(discord.ui.Select):
                 if row["metier"] and faction != "Civil":
                     await conn.execute("UPDATE players SET metier = NULL, metier_xp = 0, metier_rang = 0 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id)
                 await conn.execute("UPDATE players SET faction = $3 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id, faction)
+
+                # Nettoyage : purge les quêtes journalières/hebdo en cours qui référencent un mini-jeu
+                # de faction devenu inaccessible (évite une quête bloquée jusqu'au renouvellement naturel).
+                code_nouvelle_faction = CODE_MINIJEU_PAR_FACTION.get(faction)
+                codes_a_purger = [c for c in CODES_MINIJEUX_FACTION if c != code_nouvelle_faction]
+                nb_quetes_purgees = await conn.fetchval(
+                    """SELECT COUNT(*) FROM quest_progress
+                       WHERE guild_id=$1 AND user_id=$2 AND periode IN ('daily','weekly')
+                         AND reclame=FALSE AND objectif_code = ANY($3::text[])""",
+                    interaction.guild_id, self.membre.id, codes_a_purger
+                )
+                if nb_quetes_purgees:
+                    await conn.execute(
+                        """DELETE FROM quest_progress
+                           WHERE guild_id=$1 AND user_id=$2 AND periode IN ('daily','weekly')
+                             AND reclame=FALSE AND objectif_code = ANY($3::text[])""",
+                        interaction.guild_id, self.membre.id, codes_a_purger
+                    )
+
         await assign_faction_role(interaction.guild, self.membre, faction)
-        embed = discord.Embed(title="✅ Faction modifiée", description=f"Faction de {self.membre.mention} définie sur **{faction}** (rôle Discord mis à jour aussi).", color=0x27AE60)
+        description = f"Faction de {self.membre.mention} définie sur **{faction}** (rôle Discord mis à jour aussi)."
+        if nb_quetes_purgees:
+            description += f"\n🧹 {nb_quetes_purgees} quête(s) de faction devenue(s) inaccessible(s) ont été retirées (nouvelles quêtes au renouvellement naturel)."
+        embed = discord.Embed(title="✅ Faction modifiée", description=description, color=0x27AE60)
         embed.set_footer(text="🌊 One Piece Bot • Dashboard")
         await interaction.response.edit_message(embed=embed, view=None)
 
