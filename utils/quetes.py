@@ -9,6 +9,7 @@ from utils.players import get_player
 
 CODES = list(OBJECTIFS.keys())
 MAX_SECONDAIRES_ACTIVES = 2
+CODES_MINIJEUX_FACTION = {"pirate_minijeu", "marine_minijeu", "revolution_minijeu", "civil_minijeu"}
 
 
 # ===== FILTRAGE PAR ÉLIGIBILITÉ =====
@@ -116,6 +117,13 @@ async def increment_quest_progress(guild_id: int, user_id: int, objectif_code: s
         for r in rows:
             nouveau = min(r["cible"], r["progres"] + montant)
             await conn.execute("UPDATE quest_progress SET progres = $2 WHERE id = $1", r["id"], nouveau)
+
+        # Compteur permanent, indépendant des quêtes en cours : alimente le succès "Mini-jeux de faction".
+        if objectif_code in CODES_MINIJEUX_FACTION:
+            await conn.execute(
+                "UPDATE players SET nb_minijeux_faction = nb_minijeux_faction + $3 WHERE guild_id=$1 AND user_id=$2",
+                guild_id, user_id, montant
+            )
 
 
 # ===== QUETE PRINCIPALE =====
