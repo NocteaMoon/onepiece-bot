@@ -38,7 +38,7 @@ class RegateCourseView(discord.ui.View):
 
     def build_embed(self, message: str = None):
         embed = discord.Embed(title="🚣 Régate en cours !", color=0x1B3A5C)
-        embed.description = message or "Ramez de toutes vos forces jusqu'à la ligne d'arrivée !"
+        embed.description = message or "**Ramer** est régulier, **Sprint** a la même moyenne mais peut faire beaucoup avancer... ou presque pas !"
         for p in self.participants:
             embed.add_field(
                 name=f"{p['bateau']} {p['name']} — {p['position']}/{DISTANCE_COURSE}m",
@@ -73,14 +73,24 @@ class RegateCourseView(discord.ui.View):
         embed.color = 0x27AE60
         await self.message.edit(embed=embed, view=self)
 
-    @discord.ui.button(label="Ramer !", emoji="🚣", style=discord.ButtonStyle.primary)
-    async def ramer(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
+    async def ramer_mode(self, interaction, mode):
         if self.termine:
             return
 
         joueur = next(p for p in self.participants if p["id"] == interaction.user.id)
-        avance = random.randint(4, 9) + (joueur["force"] // 15)
+        bonus_force = joueur["force"] // 15
+
+        if mode == "ramer":
+            avance = random.randint(4, 9) + bonus_force
+        else:
+            avance = random.randint(0, 13) + bonus_force
+            if avance >= 11 + bonus_force:
+                message_extra = f"🎲 **{joueur['name']}** place un sprint parfait et bondit en avant !"
+            elif avance <= 2 + bonus_force:
+                message_extra = f"**{joueur['name']}** s'épuise en sprintant, à peine une longueur gagnée..."
+            else:
+                message_extra = None
+
         joueur["position"] += avance
 
         if joueur["position"] >= DISTANCE_COURSE:
@@ -88,7 +98,18 @@ class RegateCourseView(discord.ui.View):
             await self.finir(interaction, joueur)
             return
 
-        await self.message.edit(embed=self.build_embed(), view=self)
+        message = message_extra if mode == "sprint" and 'message_extra' in dir() and message_extra else None
+        await self.message.edit(embed=self.build_embed(message), view=self)
+
+    @discord.ui.button(label="Ramer", emoji="🚣", style=discord.ButtonStyle.primary)
+    async def ramer(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.ramer_mode(interaction, "ramer")
+
+    @discord.ui.button(label="Sprint", emoji="🎲", style=discord.ButtonStyle.danger)
+    async def sprint(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.ramer_mode(interaction, "sprint")
 
     async def on_timeout(self):
         for c in self.children:
