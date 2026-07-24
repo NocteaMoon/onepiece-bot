@@ -6,6 +6,7 @@ from utils.players import get_player, add_xp
 from utils.combat_stats import get_effective_stats
 from utils.channel_check import require_salon
 from utils.announcements import announce_level_up
+from utils.maitrise import progresser_maitrise, LABELS as MAITRISE_LABELS
 from data.ennemis import ENNEMIS
 
 COUT_ENDURANCE = 25
@@ -44,7 +45,7 @@ class RaidBossView(discord.ui.View):
 
     def build_embed(self, message: str = None):
         embed = discord.Embed(title=f"👑 RAID — {self.boss_nom.capitalize()}", color=0xC0392B)
-        embed.description = message or "L'équipe se rassemble face au colosse !"
+        embed.description = message or "L'équipe se rassemble face au colosse ! **Frappe standard** est régulière, **Frappe risquée** a la même moyenne mais peut faire beaucoup plus... ou beaucoup moins."
         embed.add_field(
             name=f"PV du boss — {max(0, self.boss_pv)}/{self.boss_pv_max}",
             value=barre(self.boss_pv, self.boss_pv_max), inline=False
@@ -92,18 +93,34 @@ class RaidBossView(discord.ui.View):
         embed.color = 0x7F0000
         await self.message.edit(embed=embed, view=self)
 
-    @discord.ui.button(label="Attaquer !", emoji="⚔️", style=discord.ButtonStyle.danger)
-    async def attaquer(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
+    async def frapper(self, interaction, mode):
         if self.termine:
             return
-
         joueur = next(p for p in self.participants if p["id"] == interaction.user.id)
-        degats = max(1, round(joueur["eff"]["force"] * random.uniform(0.85, 1.2)))
+        force = joueur["eff"]["force"]
+
+        if mode == "standard":
+            degats = max(1, round(force * random.uniform(0.85, 1.15)))
+            message = f"**{joueur['name']}** frappe pour **{degats}** dégâts !"
+        else:
+            degats = max(1, round(force * random.uniform(0.5, 1.8)))
+            if degats > round(force * 1.3):
+                message = f"💥 **{joueur['name']}** place un coup dévastateur pour **{degats}** dégâts !"
+            elif degats < round(force * 0.7):
+                message = f"**{joueur['name']}** rate son ouverture, seulement **{degats}** dégâts..."
+            else:
+                message = f"**{joueur['name']}** frappe pour **{degats}** dégâts !"
+
         self.boss_pv -= degats
         self.contributions[joueur["id"]] += degats
         self.tours_restants -= 1
-        self.log.append(f"**{joueur['name']}** frappe pour **{degats}** dégâts !")
+
+        nouveau_palier = await progresser_maitrise(self.guild_id, joueur["id"], joueur["eff"].get("type_arme_equipee"))
+        if nouveau_palier is not None:
+            label = MAITRISE_LABELS.get(joueur["eff"].get("type_arme_equipee"), "?")
+            message += f"\n💪 Maîtrise de **{joueur['name']}** en **{label}** progresse !"
+
+        self.log.append(message)
 
         if self.boss_pv <= 0:
             await self.victoire(interaction)
@@ -113,6 +130,16 @@ class RaidBossView(discord.ui.View):
             return
 
         await self.message.edit(embed=self.build_embed(), view=self)
+
+    @discord.ui.button(label="Frappe standard", emoji="⚔️", style=discord.ButtonStyle.primary)
+    async def frappe_standard(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.frapper(interaction, "standard")
+
+    @discord.ui.button(label="Frappe risquée", emoji="🎲", style=discord.ButtonStyle.danger)
+    async def frappe_risquee(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.frapper(interaction, "risquee")
 
     async def on_timeout(self):
         for c in self.children:
