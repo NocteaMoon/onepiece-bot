@@ -588,7 +588,7 @@ async def atelier_encheres(interaction: discord.Interaction):
     bid_view.message = bid_msg
 
 
-# ===== FOIRE DU VILLAGE (coopératif) =====
+# ===== FOIRE DU VILLAGE (coopératif, Contribution régulière/audacieuse) =====
 
 class FoireJoinView(discord.ui.View):
     def __init__(self, guild_id, hote: discord.Member):
@@ -653,21 +653,31 @@ class FoireContributionView(discord.ui.View):
 
     def build_embed(self, message=None):
         embed = discord.Embed(title="🎪 Foire du village", color=0xE67E22)
-        embed.description = message or "Cliquez sur Participer autant de fois que possible !"
+        embed.description = message or "**Contribution régulière** est stable, **Contribution audacieuse** a la même moyenne mais peut rapporter beaucoup plus... ou presque rien."
         rempli = round(max(0, self.progres) / self.objectif * 14) if self.objectif else 0
         rempli = min(rempli, 14)
         embed.add_field(name=f"Préparatifs — {max(0, self.progres):,}/{self.objectif:,}", value="🟨" * rempli + "⬜" * (14 - rempli), inline=False)
         embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Civils")
         return embed
 
-    @discord.ui.button(label="Participer aux préparatifs", emoji="🎪", style=discord.ButtonStyle.success)
-    async def participer(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
+    async def contribuer_mode(self, interaction, mode):
         if self.termine:
             return
         player = await get_player(self.guild_id, interaction.user.id)
         bonus_metier = (player["metier_xp"] or 0) // 50
-        contribution = random.randint(10, 20) + bonus_metier
+
+        if mode == "reguliere":
+            contribution = random.randint(10, 20) + bonus_metier
+            message_contrib = f"**{interaction.user.display_name}** contribue avec **{contribution}** points de préparation !"
+        else:
+            contribution = random.randint(2, 30) + bonus_metier
+            if contribution >= 26 + bonus_metier:
+                message_contrib = f"🎉 **{interaction.user.display_name}** a une idée brillante et apporte **{contribution}** points !"
+            elif contribution <= 6 + bonus_metier:
+                message_contrib = f"**{interaction.user.display_name}** peine un peu, seulement **{contribution}** points..."
+            else:
+                message_contrib = f"**{interaction.user.display_name}** contribue avec **{contribution}** points de préparation !"
+
         self.progres += contribution
         self.contributions[interaction.user.id] += contribution
 
@@ -694,7 +704,17 @@ class FoireContributionView(discord.ui.View):
             await self.message.edit(embed=embed, view=self)
             return
 
-        await self.message.edit(embed=self.build_embed(f"**{interaction.user.display_name}** contribue avec **{contribution}** points de préparation !"), view=self)
+        await self.message.edit(embed=self.build_embed(message_contrib), view=self)
+
+    @discord.ui.button(label="Contribution régulière", emoji="🛠️", style=discord.ButtonStyle.success)
+    async def reguliere(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.contribuer_mode(interaction, "reguliere")
+
+    @discord.ui.button(label="Contribution audacieuse", emoji="🎲", style=discord.ButtonStyle.danger)
+    async def audacieuse(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.contribuer_mode(interaction, "audacieuse")
 
     async def on_timeout(self):
         if self.termine:
