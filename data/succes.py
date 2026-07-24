@@ -80,4 +80,10 @@ FAMILLES = {
         (100, 600, "Collection impressionnante"),
         (143, 1200, "Collection complète"),
     ]),
+    "minijeux_faction": ("🎲 Mini-jeux de faction", "minijeux_faction_min", [
+        (10, 50, "Toujours partant"),
+        (30, 120, "Habitué de la taverne"),
+        (75, 280, "Pilier de la faction"),
+        (150, 600, "Légende de la taverne"),
+    ]),
 }
