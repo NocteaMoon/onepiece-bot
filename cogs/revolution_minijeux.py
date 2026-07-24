@@ -22,6 +22,7 @@ insurrection_group = app_commands.Group(name="insurrection", description="Mini-j
 COOLDOWN_BRIEFING = 20
 COUT_INFILTRATION = 15
 COOLDOWN_INFILTRATION = 25
+COUT_CORRUPTION_BONUS = 35
 DUREE_JOIN_SABOTAGE = 60
 COOLDOWN_CODE_SECRET = 30
 COUT_RECRUTEMENT = 15
@@ -169,7 +170,87 @@ async def insurrection_briefing(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed, view=view)
 
 
-# ===== INFILTRATION (K.O. bloqué) =====
+# ===== INFILTRATION (2 approches tactiques) =====
+
+class InfiltrationApproachView(discord.ui.View):
+    def __init__(self, guild_id, user_id, player, lieu, chance_base):
+        super().__init__(timeout=30)
+        self.guild_id = guild_id
+        self.user_id = user_id
+        self.player = player
+        self.lieu = lieu
+        self.chance_base = chance_base
+        self.termine = False
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.user_id
+
+    async def resoudre(self, interaction, approche):
+        if self.termine:
+            return
+        self.termine = True
+        for c in self.children:
+            c.disabled = True
+
+        pool = get_pool()
+        cout_extra = 0
+        if approche == "discretion":
+            label = "Discrétion"
+            chance = self.chance_base
+        else:
+            label = "Corruption"
+            cout_extra = min(self.player["berrys"], COUT_CORRUPTION_BONUS)
+            chance = min(0.92, self.chance_base + 0.25)
+            if cout_extra > 0:
+                async with pool.acquire() as conn:
+                    await conn.execute("UPDATE players SET berrys = berrys - $3 WHERE guild_id=$1 AND user_id=$2",
+                                        self.guild_id, self.user_id, cout_extra)
+
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE players SET endurance = endurance - $3 WHERE guild_id=$1 AND user_id=$2",
+                                self.guild_id, self.user_id, COUT_INFILTRATION)
+        await increment_quest_progress(self.guild_id, self.user_id, "revolution_minijeu")
+
+        if random.random() < chance:
+            gain = random.randint(30, 70)
+            async with pool.acquire() as conn:
+                await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", self.guild_id, self.user_id, gain)
+            await add_xp(self.guild_id, self.user_id, 18, 7)
+            await add_reputation_faction(self.guild_id, self.user_id, "Révolutionnaire", MONTANT_COMBAT_VICTOIRE)
+            net = gain - cout_extra
+            extra_txt = f" (pot-de-vin de {cout_extra}฿ déduit, net **{net:+,}฿**)" if cout_extra else ""
+            embed = discord.Embed(
+                title="🥷 Infiltration réussie !",
+                description=f"Par **{label}**, tu te faufiles dans {self.lieu} et repars avec **{gain}฿** de documents et objets de valeur.{extra_txt}",
+                color=0x27AE60
+            )
+        else:
+            perte_pv = random.randint(5, 15)
+            async with pool.acquire() as conn:
+                await conn.execute("UPDATE players SET pv = GREATEST(1, pv - $3) WHERE guild_id=$1 AND user_id=$2", self.guild_id, self.user_id, perte_pv)
+            extra_txt = f" Le pot-de-vin de {cout_extra}฿ est perdu." if cout_extra else ""
+            embed = discord.Embed(
+                title="🥷 Infiltration compromise...",
+                description=f"Ta **{label}** échoue, une patrouille te repère dans {self.lieu} ! Tu bats en retraite de justesse (-{perte_pv} PV).{extra_txt}",
+                color=0x7F0000
+            )
+        embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Révolutionnaires")
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Discrétion", emoji="🥷", style=discord.ButtonStyle.secondary)
+    async def discretion(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.resoudre(interaction, "discretion")
+
+    @discord.ui.button(label=f"Corruption (-{COUT_CORRUPTION_BONUS}฿ max)", emoji="💰", style=discord.ButtonStyle.primary)
+    async def corruption(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.resoudre(interaction, "corruption")
+
+    async def on_timeout(self):
+        if self.termine:
+            return
+        for c in self.children:
+            c.disabled = True
+
 
 @insurrection_group.command(name="infiltration", description="Infiltrer discrètement un lieu surveillé (Révolutionnaire)")
 @require_salon("salon_taverne")
@@ -199,37 +280,20 @@ async def insurrection_infiltration(interaction: discord.Interaction):
     _last_infiltration[key] = now
     lieu = random.choice(LIEUX_INFILTRATION)
     eff = await get_effective_stats(interaction.guild_id, interaction.user.id, player)
-    chance = max(0.35, min(0.90, 0.55 + (eff["agilite"] + eff["chance"]) * 0.01))
+    chance_base = max(0.35, min(0.90, 0.55 + (eff["agilite"] + eff["chance"]) * 0.01))
 
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        await conn.execute("UPDATE players SET endurance = endurance - $3 WHERE guild_id=$1 AND user_id=$2",
-                            interaction.guild_id, interaction.user.id, COUT_INFILTRATION)
-
-    await increment_quest_progress(interaction.guild_id, interaction.user.id, "revolution_minijeu")
-
-    if random.random() < chance:
-        gain = random.randint(30, 70)
-        async with pool.acquire() as conn:
-            await conn.execute("UPDATE players SET berrys = berrys + $3 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, interaction.user.id, gain)
-        await add_xp(interaction.guild_id, interaction.user.id, 18, 7)
-        await add_reputation_faction(interaction.guild_id, interaction.user.id, "Révolutionnaire", MONTANT_COMBAT_VICTOIRE)
-        embed = discord.Embed(
-            title="🥷 Infiltration réussie !",
-            description=f"Tu te faufiles sans un bruit dans {lieu} et repars avec **{gain}฿** de documents et objets de valeur.",
-            color=0x27AE60
-        )
-    else:
-        perte_pv = random.randint(5, 15)
-        async with pool.acquire() as conn:
-            await conn.execute("UPDATE players SET pv = GREATEST(1, pv - $3) WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, interaction.user.id, perte_pv)
-        embed = discord.Embed(
-            title="🥷 Infiltration compromise...",
-            description=f"Une patrouille te repère dans {lieu} ! Tu bats en retraite de justesse (-{perte_pv} PV).",
-            color=0x7F0000
-        )
+    view = InfiltrationApproachView(interaction.guild_id, interaction.user.id, player, lieu, chance_base)
+    embed = discord.Embed(
+        title="🥷 Infiltration",
+        description=(
+            f"Tu repères {lieu}. Comment t'y prends-tu ?\n\n"
+            f"🥷 **Discrétion** — gratuit, chance basée sur ton Agilité/Chance\n"
+            f"💰 **Corruption** — coûte jusqu'à {COUT_CORRUPTION_BONUS}฿ (non remboursé en cas d'échec), mais bien plus sûr"
+        ),
+        color=0x2C3E50
+    )
     embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Révolutionnaires")
-    await interaction.followup.send(embed=embed)
+    await interaction.followup.send(embed=embed, view=view)
 
 
 # ===== SABOTAGE (K.O. bloqué — combat réel) =====
