@@ -79,7 +79,97 @@ async def notifier_progression_hors_combat(interaction, uid, member):
         ))
 
 
-# ===== CHASSE À LA PRIME =====
+# ===== CHASSE À LA PRIME (2 approches tactiques) =====
+
+class ChassePrimeApproachView(discord.ui.View):
+    def __init__(self, guild_id, user_id, player, cible, cible_data, lieu):
+        super().__init__(timeout=30)
+        self.guild_id = guild_id
+        self.user_id = user_id
+        self.player = player
+        self.cible = cible
+        self.cible_data = cible_data
+        self.lieu = lieu
+        self.termine = False
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.user_id
+
+    async def resoudre(self, interaction, approche):
+        if self.termine:
+            return
+        self.termine = True
+        for c in self.children:
+            c.disabled = True
+
+        eff_a = await get_effective_stats(self.guild_id, self.user_id, self.player)
+        eff_c = await get_effective_stats(self.guild_id, self.cible.id, self.cible_data)
+
+        if approche == "traque":
+            label = "Traque silencieuse"
+            score_a = eff_a["agilite"] * 1.5 + eff_a["chance"] + random.randint(0, 20)
+            score_c = eff_c["agilite"] + eff_c["chance"] + random.randint(0, 20)
+            vol_min, vol_max = 0.04, 0.08
+            perte_min, perte_max = 8, 18
+        else:
+            label = "Confrontation directe"
+            score_a = eff_a["force"] * 1.5 + eff_a["vitesse"] + random.randint(0, 20)
+            score_c = eff_c["defense"] + eff_c["vitesse"] + random.randint(0, 20)
+            vol_min, vol_max = 0.08, 0.16
+            perte_min, perte_max = 18, 38
+
+        pool = get_pool()
+        await conn_wrapper(pool, self.guild_id, self.user_id, COUT_CHASSE_PRIME)
+        await increment_quest_progress(self.guild_id, self.user_id, "pirate_minijeu")
+
+        if score_a > score_c:
+            vol = max(20, round(self.cible_data["prime"] * random.uniform(vol_min, vol_max)))
+            async with pool.acquire() as conn:
+                await conn.execute("UPDATE players SET berrys = berrys + $3, prime = prime + $4 WHERE guild_id=$1 AND user_id=$2",
+                                    self.guild_id, self.user_id, vol, vol // 2)
+                await conn.execute("UPDATE players SET prime = GREATEST(0, prime - $3) WHERE guild_id=$1 AND user_id=$2",
+                                    self.guild_id, self.cible.id, vol)
+            await add_xp(self.guild_id, self.user_id, 20, 8)
+            await add_reputation_faction(self.guild_id, self.user_id, "Pirate", MONTANT_COMBAT_VICTOIRE)
+            embed = discord.Embed(
+                title="💰 Traque réussie !",
+                description=f"Via **{label}**, tu repères **{self.cible.display_name}** dans {self.lieu} et lui subtilises une partie de sa mise à prix : **+{vol:,}฿** !",
+                color=0x27AE60
+            )
+        else:
+            perte = min(self.player["berrys"], random.randint(perte_min, perte_max))
+            async with pool.acquire() as conn:
+                await conn.execute("UPDATE players SET berrys = berrys - $3 WHERE guild_id=$1 AND user_id=$2",
+                                    self.guild_id, self.user_id, perte)
+            embed = discord.Embed(
+                title="💨 Traque manquée...",
+                description=f"Ta **{label}** échoue, **{self.cible.display_name}** t'échappe dans {self.lieu} ! Tu perds **{perte}฿** dans la manœuvre.",
+                color=0x7F0000
+            )
+        embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Pirates")
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Traque silencieuse", emoji="🥷", style=discord.ButtonStyle.secondary)
+    async def traque(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.resoudre(interaction, "traque")
+
+    @discord.ui.button(label="Confrontation directe", emoji="⚔️", style=discord.ButtonStyle.danger)
+    async def confrontation(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.resoudre(interaction, "confrontation")
+
+    async def on_timeout(self):
+        if self.termine:
+            return
+        for c in self.children:
+            c.disabled = True
+
+
+async def conn_wrapper(pool, guild_id, user_id, cout_endurance):
+    """Débite l'endurance avant résolution."""
+    async with pool.acquire() as conn:
+        await conn.execute("UPDATE players SET endurance = endurance - $3 WHERE guild_id=$1 AND user_id=$2",
+                            guild_id, user_id, cout_endurance)
+
 
 @pirate_group.command(name="chasse_prime", description="Traquer un autre joueur pour lui voler une partie de sa prime (Pirate)")
 @app_commands.describe(cible="Le joueur à traquer")
@@ -121,47 +211,99 @@ async def pirate_chasse_prime(interaction: discord.Interaction, cible: discord.M
     _last_chasse[key] = now
     lieu = random.choice(LIEUX_CHASSE_PRIME)
 
-    eff_a = await get_effective_stats(interaction.guild_id, interaction.user.id, player)
-    eff_c = await get_effective_stats(interaction.guild_id, cible.id, cible_data)
-    score_a = eff_a["force"] + eff_a["vitesse"] + random.randint(0, 25)
-    score_c = eff_c["defense"] + eff_c["agilite"] + random.randint(0, 25)
-
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        await conn.execute("UPDATE players SET endurance = endurance - $3 WHERE guild_id=$1 AND user_id=$2",
-                            interaction.guild_id, interaction.user.id, COUT_CHASSE_PRIME)
-
-    await increment_quest_progress(interaction.guild_id, interaction.user.id, "pirate_minijeu")
-
-    if score_a > score_c:
-        vol = max(20, round(cible_data["prime"] * random.uniform(0.05, 0.12)))
-        async with pool.acquire() as conn:
-            await conn.execute("UPDATE players SET berrys = berrys + $3, prime = prime + $4 WHERE guild_id=$1 AND user_id=$2",
-                                interaction.guild_id, interaction.user.id, vol, vol // 2)
-            await conn.execute("UPDATE players SET prime = GREATEST(0, prime - $3) WHERE guild_id=$1 AND user_id=$2",
-                                interaction.guild_id, cible.id, vol)
-        await add_xp(interaction.guild_id, interaction.user.id, 20, 8)
-        await add_reputation_faction(interaction.guild_id, interaction.user.id, "Pirate", MONTANT_COMBAT_VICTOIRE)
-        embed = discord.Embed(
-            title="💰 Traque réussie !",
-            description=f"Tu repères **{cible.display_name}** dans {lieu} et lui subtilises une partie de sa mise à prix : **+{vol:,}฿** !",
-            color=0x27AE60
-        )
-    else:
-        perte = min(player["berrys"], random.randint(15, 35))
-        async with pool.acquire() as conn:
-            await conn.execute("UPDATE players SET berrys = berrys - $3 WHERE guild_id=$1 AND user_id=$2",
-                                interaction.guild_id, interaction.user.id, perte)
-        embed = discord.Embed(
-            title="💨 Traque manquée...",
-            description=f"Tu repères **{cible.display_name}** dans {lieu}, mais il/elle t'échappe ! Tu perds **{perte}฿** dans la manœuvre.",
-            color=0x7F0000
-        )
+    view = ChassePrimeApproachView(interaction.guild_id, interaction.user.id, player, cible, cible_data, lieu)
+    embed = discord.Embed(
+        title="💰 Chasse à la prime",
+        description=(
+            f"Tu repères **{cible.display_name}** dans {lieu}. Comment approches-tu ?\n\n"
+            f"🥷 **Traque silencieuse** — plus sûr (Agilité/Chance), butin modeste\n"
+            f"⚔️ **Confrontation directe** — plus risqué (Force/Vitesse), butin conséquent"
+        ),
+        color=0x2C3E50
+    )
     embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Pirates")
-    await interaction.followup.send(embed=embed)
+    await interaction.followup.send(embed=embed, view=view)
 
 
-# ===== ABORDAGE =====
+# ===== ABORDAGE (2 approches tactiques) =====
+
+class AbordageApproachView(discord.ui.View):
+    def __init__(self, guild_id, user_id, player, description, b_min, b_max, chance_base):
+        super().__init__(timeout=30)
+        self.guild_id = guild_id
+        self.user_id = user_id
+        self.player = player
+        self.description = description
+        self.b_min = b_min
+        self.b_max = b_max
+        self.chance_base = chance_base
+        self.termine = False
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.user_id
+
+    async def resoudre(self, interaction, approche):
+        if self.termine:
+            return
+        self.termine = True
+        for c in self.children:
+            c.disabled = True
+
+        eff = await get_effective_stats(self.guild_id, self.user_id, self.player)
+        if approche == "frontal":
+            label = "Assaut frontal"
+            bonus_chance = min(0.20, eff["force"] * 0.004)
+            gain_mult = 1.3
+            perte_pv_min, perte_pv_max = 10, 22
+        else:
+            label = "Infiltration nocturne"
+            bonus_chance = min(0.20, eff["agilite"] * 0.004)
+            gain_mult = 0.85
+            perte_pv_min, perte_pv_max = 4, 10
+
+        reussi = random.random() < min(0.92, self.chance_base + bonus_chance)
+        pool = get_pool()
+        await increment_quest_progress(self.guild_id, self.user_id, "pirate_minijeu")
+
+        if reussi:
+            gain = round(random.randint(self.b_min, self.b_max) * gain_mult)
+            async with pool.acquire() as conn:
+                await conn.execute("UPDATE players SET berrys = berrys + $3, endurance = endurance - $4 WHERE guild_id=$1 AND user_id=$2",
+                                    self.guild_id, self.user_id, gain, COUT_ABORDAGE)
+            await add_xp(self.guild_id, self.user_id, 15, 6)
+            await add_reputation_faction(self.guild_id, self.user_id, "Pirate", MONTANT_COMBAT_VICTOIRE)
+            embed = discord.Embed(
+                title="⚔️ Abordage réussi !",
+                description=f"Par **{label}**, tu prends d'assaut **{self.description}** ! Butin récupéré : **{gain:,}฿**.",
+                color=0x27AE60
+            )
+        else:
+            perte_pv = random.randint(perte_pv_min, perte_pv_max)
+            async with pool.acquire() as conn:
+                await conn.execute("UPDATE players SET pv = GREATEST(1, pv - $3), endurance = endurance - $4 WHERE guild_id=$1 AND user_id=$2",
+                                    self.guild_id, self.user_id, perte_pv, COUT_ABORDAGE)
+            embed = discord.Embed(
+                title="⚔️ Abordage repoussé...",
+                description=f"Ta **{label}** échoue face à **{self.description}** ! Tu bats en retraite, amoché (-{perte_pv} PV).",
+                color=0x7F0000
+            )
+        embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Pirates")
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Assaut frontal", emoji="⚔️", style=discord.ButtonStyle.danger)
+    async def frontal(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.resoudre(interaction, "frontal")
+
+    @discord.ui.button(label="Infiltration nocturne", emoji="🌙", style=discord.ButtonStyle.secondary)
+    async def infiltration(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.resoudre(interaction, "infiltration")
+
+    async def on_timeout(self):
+        if self.termine:
+            return
+        for c in self.children:
+            c.disabled = True
+
 
 @pirate_group.command(name="abordage", description="Aborder un convoi marchand pour du butin (Pirate)")
 @require_salon("salon_taverne")
@@ -190,35 +332,19 @@ async def pirate_abordage(interaction: discord.Interaction):
 
     _last_abordage[key] = now
     description, b_min, b_max, chance = random.choice(CONVOIS_ABORDAGE)
-    reussi = random.random() < chance
 
-    pool = get_pool()
-    await increment_quest_progress(interaction.guild_id, interaction.user.id, "pirate_minijeu")
-
-    if reussi:
-        gain = random.randint(b_min, b_max)
-        async with pool.acquire() as conn:
-            await conn.execute("UPDATE players SET berrys = berrys + $3, endurance = endurance - $4 WHERE guild_id=$1 AND user_id=$2",
-                                interaction.guild_id, interaction.user.id, gain, COUT_ABORDAGE)
-        await add_xp(interaction.guild_id, interaction.user.id, 15, 6)
-        await add_reputation_faction(interaction.guild_id, interaction.user.id, "Pirate", MONTANT_COMBAT_VICTOIRE)
-        embed = discord.Embed(
-            title="⚔️ Abordage réussi !",
-            description=f"Tu prends d'assaut **{description}** ! Butin récupéré : **{gain:,}฿**.",
-            color=0x27AE60
-        )
-    else:
-        perte_pv = random.randint(5, 15)
-        async with pool.acquire() as conn:
-            await conn.execute("UPDATE players SET pv = GREATEST(1, pv - $3), endurance = endurance - $4 WHERE guild_id=$1 AND user_id=$2",
-                                interaction.guild_id, interaction.user.id, perte_pv, COUT_ABORDAGE)
-        embed = discord.Embed(
-            title="⚔️ Abordage repoussé...",
-            description=f"L'équipage de **{description}** se défend mieux que prévu ! Tu bats en retraite, un peu amoché (-{perte_pv} PV).",
-            color=0x7F0000
-        )
+    view = AbordageApproachView(interaction.guild_id, interaction.user.id, player, description, b_min, b_max, chance)
+    embed = discord.Embed(
+        title="⚔️ Abordage",
+        description=(
+            f"Tu repères **{description}** ! Comment attaques-tu ?\n\n"
+            f"⚔️ **Assaut frontal** — plus de butin (Force), plus de dégâts en cas d'échec\n"
+            f"🌙 **Infiltration nocturne** — plus sûr (Agilité), butin plus modeste"
+        ),
+        color=0x2C3E50
+    )
     embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Pirates")
-    await interaction.followup.send(embed=embed)
+    await interaction.followup.send(embed=embed, view=view)
 
 
 # ===== BEUVERIE DE TAVERNE (pas de risque physique, aucune vérif K.O.) =====
@@ -397,24 +523,28 @@ class PillageCombatView(discord.ui.View):
 
     def build_embed(self, message=None):
         embed = discord.Embed(title=f"🏴‍☠️ Pillage — {self.description}", color=0xE67E22)
-        embed.description = message or "Cliquez sur Piller autant de fois que possible !"
+        embed.description = message or "**⚔️ Piller** frappe fort mais expose au risque. **🛡️ Sécuriser le butin** frappe moins mais réduit les représailles pour toute l'équipe."
         rempli = round(max(0, self.pv) / self.pv_max * 14) if self.pv_max else 0
         embed.add_field(name=f"PV du convoi — {max(0, self.pv):,}/{self.pv_max:,}", value="🟥" * rempli + "⬜" * (14 - rempli), inline=False)
         embed.set_footer(text="🌊 One Piece Bot • Mini-jeux Pirates")
         return embed
 
-    @discord.ui.button(label="Piller !", emoji="⚔️", style=discord.ButtonStyle.danger)
-    async def piller(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
+    async def frapper(self, interaction, mode):
         if self.termine:
             return
         player = await get_player(self.guild_id, interaction.user.id)
         eff = await get_effective_stats(self.guild_id, interaction.user.id, player)
-        degats = max(1, round(eff["force"] * random.uniform(0.8, 1.2)))
+
+        if mode == "piller":
+            degats = max(1, round(eff["force"] * random.uniform(0.9, 1.35)))
+            message_frappe = f"**{interaction.user.display_name}** pille sans retenue pour **{degats}** dégâts !"
+        else:
+            degats = max(1, round(eff["force"] * random.uniform(0.5, 0.8)))
+            message_frappe = f"**{interaction.user.display_name}** sécurise le butin en douceur pour **{degats}** dégâts (plus sûr pour l'équipage)."
+
         self.pv -= degats
         self.degats[interaction.user.id] += degats
 
-        message_frappe = f"**{interaction.user.display_name}** frappe pour **{degats}** dégâts !"
         nouveau_palier = await progresser_maitrise(self.guild_id, interaction.user.id, eff.get("type_arme_equipee"))
         if nouveau_palier is not None:
             label = MAITRISE_LABELS.get(eff.get("type_arme_equipee"), "?")
@@ -449,6 +579,16 @@ class PillageCombatView(discord.ui.View):
 
         await self.message.edit(embed=self.build_embed(message_frappe), view=self)
 
+    @discord.ui.button(label="Piller !", emoji="⚔️", style=discord.ButtonStyle.danger)
+    async def piller(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.frapper(interaction, "piller")
+
+    @discord.ui.button(label="Sécuriser le butin", emoji="🛡️", style=discord.ButtonStyle.secondary)
+    async def securiser(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.frapper(interaction, "securiser")
+
     async def on_timeout(self):
         if self.termine:
             return
@@ -457,7 +597,7 @@ class PillageCombatView(discord.ui.View):
             c.disabled = True
         if self.message:
             try:
-                embed = self.build_embed(f"⏱️ Le temps est écoulé, **{self.description}** parvient à s'échapper.")
+                embed = self.build_embed(f"⏱ Le temps est écoulé, **{self.description}** parvient à s'échapper.")
                 embed.color = 0x7F0000
                 await self.message.edit(embed=embed, view=self)
             except discord.HTTPException:
