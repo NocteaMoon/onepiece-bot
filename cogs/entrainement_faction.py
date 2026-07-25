@@ -27,7 +27,7 @@ METIER_EMOJIS = {
 
 FACTION_INTROS = {
     "Pirate": [
-        "🏴‍☠️ En tant que Pirate, tu peux t'exercer à n'importe quelle arme sur le pont du navire.",
+        "🏴 En tant que Pirate, tu peux t'exercer à n'importe quelle arme sur le pont du navire.",
         "🏴‍☠️ Les vieux loups de mer t'invitent à croiser le fer pour parfaire ta technique.",
         "🏴‍☠️ Un coin tranquille de la cale sert de terrain d'entraînement improvisé.",
         "🏴‍☠️ Le vent souffle fort sur le pont, mais rien n'arrête une bonne session d'entraînement.",
@@ -45,7 +45,7 @@ FACTION_INTROS = {
         "🔥 Chaque session renforce un peu plus la cause que tu défends.",
     ],
     "Civil": [
-        "🏘️ Un entraînement de base est toujours accessible, et ton métier t'offre un perfectionnement dédié.",
+        "🏘 Un entraînement de base est toujours accessible, et ton métier t'offre un perfectionnement dédié.",
         "🏘️ Le petit terrain vague derrière l'atelier fait office de zone d'entraînement.",
         "🏘️ Entre deux clients, tu prends un moment pour t'exercer.",
         "🏘️ La vie civile n'empêche pas de progresser, à son rythme.",
@@ -92,6 +92,16 @@ METIER_ECHEC_TEXTES = [
 ]
 
 _last_entrainement = {}
+
+
+def get_ko_restant(player) -> int:
+    """Retourne le nombre de minutes de K.O. restantes, ou 0 si pas K.O."""
+    if not player["ko_jusqua"]:
+        return 0
+    now = datetime.datetime.utcnow()
+    if player["ko_jusqua"] <= now:
+        return 0
+    return int((player["ko_jusqua"] - now).total_seconds() // 60) + 1
 
 
 async def add_haki_direct(guild_id, user_id, colonne, cap):
@@ -218,6 +228,11 @@ async def entrainement(interaction: discord.Interaction):
     player = await get_player(interaction.guild_id, interaction.user.id)
     if player is None:
         await interaction.followup.send("Tu n'as pas encore de personnage ! Lance `/commencer` pour débuter l'aventure 🏴‍☠️")
+        return
+
+    ko_restant = get_ko_restant(player)
+    if ko_restant:
+        await interaction.followup.send(f"😵 Tu es encore K.O. pendant **{ko_restant} minute(s)**, trop blessé(e) pour t'entraîner sérieusement. Repose-toi ou fais appel à un Médecin !")
         return
 
     key = (interaction.guild_id, interaction.user.id)
