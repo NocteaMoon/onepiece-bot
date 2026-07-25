@@ -255,6 +255,13 @@ class CombatView(discord.ui.View):
                 else:
                     await conn.execute("DELETE FROM inventory WHERE id=$1", item_data["inv_id"])
 
+                # Correction : le soin d'Endurance était annoncé dans le texte mais jamais appliqué en base.
+                if item_data["soin_endurance"]:
+                    await conn.execute(
+                        "UPDATE players SET endurance = LEAST(endurance_max, endurance + $3) WHERE guild_id=$1 AND user_id=$2",
+                        self.guild_id, self.user_id, item_data["soin_endurance"]
+                    )
+
         self.player_pv = min(self.player_pv_max, self.player_pv + item_data["soin_pv"])
         self.log.append(f"Tu utilises **{item_data['nom']}** ({item_data['effet']}) !")
 
