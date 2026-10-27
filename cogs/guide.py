@@ -247,12 +247,14 @@ def embed_minijeux(config_row):
     taverne = salon(config_row, "salon_taverne", "défis-de-taverne")
     duel = salon(config_row, "salon_duel", "duel-pvp")
     combat = salon(config_row, "salon_combat", "combat")
+    peche = salon(config_row, "salon_peche", "pêche-chasse-récolte")
+    tresor = salon(config_row, "salon_tresor", "chasse-au-trésor")
     embed = discord.Embed(
         title="🎲 Mini-jeux",
         description=(
             f"**Universels** (dans {taverne} sauf mention contraire) :\n"
-            "Solo : `/peche_au_gros`, `/bras_de_fer`, `/concours_nourriture`, `/casino`, `/cartes`\n"
-            f"Multi : `/regate`, `/chasse_tresor`, `/raid_boss` (dans {combat}), "
+            f"Solo : `/peche_au_gros` (dans {peche}), `/bras_de_fer`, `/concours_nourriture`, `/casino`, `/cartes`\n"
+            f"Multi : `/regate`, `/chasse_tresor` (dans {tresor}), `/raid_boss` (dans {combat}), "
             f"`/tournoi` (dans {duel}), `/bras_de_fer_duel`, `/duel` (dans {duel})\n\n"
             "**🏴‍☠️ Pirate — `/pirate`** : `chasse_prime`, `abordage`, `beuverie`, `pillage_convoi` (coop), `duel_eclair`\n\n"
             "**⚓ Marine — `/amiraute`** : `patrouille`, `exercice_tir`, `interrogatoire`, `bataille_navale` (coop), `inspection`\n\n"
