@@ -15,6 +15,18 @@ from utils.reputation import add_reputation_faction, MONTANT_COMBAT_VICTOIRE
 from utils.quetes import increment_quest_progress
 from utils.notoriete import add_notoriete, MONTANT_DUEL
 
+SPECIAL_COOLDOWN_TOURS = 3
+COUNTER_CHANCE = 0.30
+
+SPECIAL_MOVES = {
+    "epee": ("Estocade", "🗡️"),
+    "poings": ("Rafale", "👊"),
+    "lance": ("Percée", "🔱"),
+    "pistolet": ("Tir ciblé", "🔫"),
+    "fusil": ("Tir ciblé", "🔫"),
+    "arc": ("Tir perçant", "🏹"),
+}
+
 
 def barre(valeur, max_valeur, taille=10, plein="🟩", vide="⬜"):
     valeur = max(0, min(max_valeur, valeur))
@@ -30,6 +42,44 @@ def get_ko_restant(player) -> int:
     if player["ko_jusqua"] <= now:
         return 0
     return int((player["ko_jusqua"] - now).total_seconds() // 60) + 1
+
+
+def calculer_degats_special(type_arme, force, defense):
+    """Retourne (degats, info_extra) — info_extra varie selon l'arme (bool critique, ou nb de coups)."""
+    if type_arme == "epee":
+        critique = random.random() < 0.25
+        degats = round(force * random.uniform(1.3, 1.6) - defense * 0.5)
+        if critique:
+            degats = round(degats * 1.5)
+        return max(1, degats), critique
+    if type_arme == "poings":
+        nb_coups = random.randint(2, 3)
+        total = sum(max(1, round(force * random.uniform(0.5, 0.65) - defense * 0.3)) for _ in range(nb_coups))
+        return total, nb_coups
+    if type_arme == "lance":
+        degats = round(force * random.uniform(0.9, 1.2) - defense * 0.15)
+        return max(1, degats), None
+    if type_arme in ("pistolet", "fusil"):
+        degats = round(force * 1.3 - defense * 0.5)
+        return max(1, degats), None
+    if type_arme == "arc":
+        critique = random.random() < 0.20
+        degats = round(force * random.uniform(1.0, 1.3) - defense * 0.25)
+        if critique:
+            degats = round(degats * 1.4)
+        return max(1, degats), critique
+    return max(1, round(force * random.uniform(0.85, 1.15) - defense * 0.5)), None
+
+
+def construire_message_special(type_arme, nom_coup, emoji_coup, nom_attaquant, nom_defenseur, degats, extra):
+    base = f"{emoji_coup} **{nom_attaquant}** déclenche **{nom_coup}** sur **{nom_defenseur}** !"
+    if type_arme == "poings":
+        base += f" {extra} coups enchaînés pour un total de **{degats}** dégâts !"
+    elif type_arme in ("epee", "arc") and extra:
+        base += f" **COUP CRITIQUE** pour **{degats}** dégâts !"
+    else:
+        base += f" **{degats}** dégâts infligés !"
+    return base
 
 
 async def notifier_progression_hors_combat(interaction, guild_id, uid, member):
@@ -66,6 +116,8 @@ class DuelCombatView(discord.ui.View):
         self.guild_id = guild_id
         self.p1 = p1
         self.p2 = p2
+        self.p1["special_cooldown"] = 0
+        self.p2["special_cooldown"] = 0
         self.eff = {p1["id"]: eff1, p2["id"]: eff2}
         self.mise = mise
         self.current_turn_id = random.choice([p1["id"], p2["id"]])
@@ -73,8 +125,34 @@ class DuelCombatView(discord.ui.View):
         self.message = None
         self.log = []
 
+        self.special_item = discord.ui.Button(style=discord.ButtonStyle.success)
+        self.special_item.callback = self.special_callback
+        self.add_item(self.special_item)
+        self.mettre_a_jour_bouton_special()
+
     def joueur(self, uid):
         return self.p1 if uid == self.p1["id"] else self.p2
+
+    def mettre_a_jour_bouton_special(self):
+        joueur = self.joueur(self.current_turn_id)
+        type_arme = self.eff[self.current_turn_id].get("type_arme_equipee")
+        if not type_arme or type_arme not in SPECIAL_MOVES:
+            self.special_item.label = "Coup spécial (aucune arme)"
+            self.special_item.emoji = "⛔"
+            self.special_item.disabled = True
+            self.special_item.style = discord.ButtonStyle.secondary
+            return
+        nom, emoji = SPECIAL_MOVES[type_arme]
+        cooldown = joueur.get("special_cooldown", 0)
+        self.special_item.emoji = emoji
+        if cooldown > 0:
+            self.special_item.label = f"{nom} (dans {cooldown})"
+            self.special_item.disabled = True
+            self.special_item.style = discord.ButtonStyle.secondary
+        else:
+            self.special_item.label = f"{nom} !"
+            self.special_item.disabled = False
+            self.special_item.style = discord.ButtonStyle.success
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id not in (self.p1["id"], self.p2["id"]):
@@ -172,9 +250,12 @@ class DuelCombatView(discord.ui.View):
         eff_att = self.eff[attaquant_id]
         eff_def = self.eff[defenseur_id]
 
+        attaquant["special_cooldown"] = max(0, attaquant.get("special_cooldown", 0) - 1)
         attaquant["defense_active"] = False
         degats = max(1, round(eff_att["force"] * random.uniform(0.85, 1.15) - eff_def["defense"] * 0.5))
-        if defenseur.get("defense_active"):
+
+        etait_en_garde = defenseur.get("defense_active")
+        if etait_en_garde:
             degats = max(1, round(degats * 0.5))
             defenseur["defense_active"] = False
 
@@ -186,13 +267,23 @@ class DuelCombatView(discord.ui.View):
             label = MAITRISE_LABELS.get(eff_att.get("type_arme_equipee"), "?")
             message_attaque += f"\n💪 Maîtrise de **{attaquant['name']}** en **{label}** progresse !"
 
+        # Contre-attaque : une garde bien tenue peut riposter.
+        if etait_en_garde and random.random() < COUNTER_CHANCE:
+            contre_degats = max(1, round(eff_def["force"] * random.uniform(0.25, 0.4)))
+            attaquant["pv"] -= contre_degats
+            message_attaque += f"\n🔄 **{defenseur['name']}** saisit l'ouverture et contre-attaque pour **{contre_degats}** dégâts !"
+
         self.log.append(message_attaque)
 
         if defenseur["pv"] <= 0:
             await self.terminer(interaction, attaquant_id, defenseur_id, f"**{defenseur['name']}** s'effondre !")
             return
+        if attaquant["pv"] <= 0:
+            await self.terminer(interaction, defenseur_id, attaquant_id, f"**{attaquant['name']}** s'effondre sous la contre-attaque !")
+            return
 
         self.current_turn_id = defenseur_id
+        self.mettre_a_jour_bouton_special()
         await self.message.edit(embed=self.build_embed(), view=self)
 
     @discord.ui.button(label="Défense", emoji="🛡️", style=discord.ButtonStyle.primary)
@@ -202,9 +293,51 @@ class DuelCombatView(discord.ui.View):
             return
         joueur_id = self.current_turn_id
         joueur = self.joueur(joueur_id)
+        joueur["special_cooldown"] = max(0, joueur.get("special_cooldown", 0) - 1)
         joueur["defense_active"] = True
-        self.log.append(f"**{joueur['name']}** se met en garde, prêt(e) à encaisser la prochaine attaque.")
+        self.log.append(f"**{joueur['name']}** se met en garde, prêt(e) à encaisser la prochaine attaque — et à riposter si l'occasion se présente.")
         self.current_turn_id = self.p2["id"] if joueur_id == self.p1["id"] else self.p1["id"]
+        self.mettre_a_jour_bouton_special()
+        await self.message.edit(embed=self.build_embed(), view=self)
+
+    async def special_callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        if self.termine:
+            return
+        attaquant_id = self.current_turn_id
+        defenseur_id = self.p2["id"] if attaquant_id == self.p1["id"] else self.p1["id"]
+        attaquant = self.joueur(attaquant_id)
+        defenseur = self.joueur(defenseur_id)
+        eff_att = self.eff[attaquant_id]
+        eff_def = self.eff[defenseur_id]
+        type_arme = eff_att.get("type_arme_equipee")
+
+        attaquant["defense_active"] = False
+        nom_coup, emoji_coup = SPECIAL_MOVES.get(type_arme, ("Coup spécial", "⚔️"))
+        degats, extra = calculer_degats_special(type_arme, eff_att["force"], eff_def["defense"])
+
+        if defenseur.get("defense_active"):
+            degats = max(1, round(degats * 0.5))
+            defenseur["defense_active"] = False
+
+        defenseur["pv"] -= degats
+        attaquant["special_cooldown"] = SPECIAL_COOLDOWN_TOURS
+
+        message_special = construire_message_special(type_arme, nom_coup, emoji_coup, attaquant["name"], defenseur["name"], degats, extra)
+
+        nouveau_palier = await progresser_maitrise(self.guild_id, attaquant_id, type_arme)
+        if nouveau_palier is not None:
+            label = MAITRISE_LABELS.get(type_arme, type_arme)
+            message_special += f"\n💪 Maîtrise de **{attaquant['name']}** en **{label}** progresse !"
+
+        self.log.append(message_special)
+
+        if defenseur["pv"] <= 0:
+            await self.terminer(interaction, attaquant_id, defenseur_id, f"**{defenseur['name']}** s'effondre sous le coup spécial !")
+            return
+
+        self.current_turn_id = defenseur_id
+        self.mettre_a_jour_bouton_special()
         await self.message.edit(embed=self.build_embed(), view=self)
 
     @discord.ui.button(label="Abandonner", emoji="🏳️", style=discord.ButtonStyle.secondary)
@@ -288,7 +421,7 @@ class DuelChallengeView(discord.ui.View):
 
         duel_view = DuelCombatView(self.guild_id, p1, p2, eff1, eff2, self.mise)
         embed = duel_view.build_embed()
-        embed.description = (embed.description + "\n\n" if embed.description else "") + "⚔️ Le duel commence !"
+        embed.description = (embed.description + "\n\n" if embed.description else "") + "⚔️ Le duel commence ! Attention aux coups spéciaux et aux contre-attaques en défense."
         await interaction.response.edit_message(content=None, embed=embed, view=duel_view)
         duel_view.message = await interaction.original_response()
 
