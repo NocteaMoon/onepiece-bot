@@ -6,6 +6,7 @@ from cogs.boss_mondial import get_active_boss, force_spawn_boss
 from cogs.welcome import get_welcome_config, WelcomeVerifyView
 from utils.players import add_xp
 from data.mers import MERS
+from data.quetes import OBJECTIFS as QUETES_OBJECTIFS
 from utils.faction_roles import (
     get_faction_role_ids, set_faction_role_id, create_all_faction_roles,
     assign_faction_role, remove_all_faction_roles, sync_all_members_faction_roles, FACTION_ROLE_NAMES
@@ -64,6 +65,8 @@ CODE_MINIJEU_PAR_FACTION = {
     "Pirate": "pirate_minijeu", "Marine": "marine_minijeu",
     "Révolutionnaire": "revolution_minijeu", "Civil": "civil_minijeu",
 }
+# Calculé depuis data/quetes.py : jamais recopié à la main, reste juste même si de nouveaux objectifs de métier sont ajoutés plus tard.
+CODES_METIER_REQUIS = [code for code, data in QUETES_OBJECTIFS.items() if data.get("metier_requis")]
 
 
 # ===== ACCUEIL =====
@@ -277,7 +280,7 @@ class LangueSelect(discord.ui.Select):
                 INSERT INTO guild_config (guild_id, lang) VALUES ($1, $2)
                 ON CONFLICT (guild_id) DO UPDATE SET lang = $2
             """, interaction.guild_id, langue)
-        label = "Français 🇫🇷" if langue == "fr" else "English 🇬"
+        label = "Français 🇫🇷" if langue == "fr" else "English 🇬🇧"
         embed = discord.Embed(title="🌐 Langue mise à jour !", description=f"Langue définie sur **{label}**.", color=0x27AE60)
         embed.set_footer(text="🌊 One Piece Bot • Dashboard")
         await interaction.response.edit_message(embed=embed, view=DashboardLangueView())
@@ -831,12 +834,6 @@ class MarcheSlotSelect(discord.ui.Select):
         await interaction.response.edit_message(embed=embed, view=None)
 
 
-class MarcheAjouterSlotView(discord.ui.View):
-    def __init__(self, nom, description, prix, categorie, faction, rarete):
-        super().__init__(timeout=300)
-        self.add_item(MarcheSlotSelect(nom, description, prix, categorie, faction, rarete))
-
-
 class MarcheCategoryPickSelect(discord.ui.Select):
     def __init__(self, mode):
         self.mode = mode
@@ -992,14 +989,17 @@ class JoueurFactionSelect(discord.ui.Select):
             async with conn.transaction():
                 if row["equipage_id"] and faction != "Pirate":
                     await conn.execute("UPDATE players SET equipage_id = NULL, grade_equipage = NULL WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id)
-                if row["metier"] and faction != "Civil":
+                metier_efface = bool(row["metier"]) and faction != "Civil"
+                if metier_efface:
                     await conn.execute("UPDATE players SET metier = NULL, metier_xp = 0, metier_rang = 0 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id)
                 await conn.execute("UPDATE players SET faction = $3 WHERE guild_id=$1 AND user_id=$2", interaction.guild_id, self.membre.id, faction)
 
                 # Nettoyage : purge les quêtes journalières/hebdo en cours qui référencent un mini-jeu
-                # de faction devenu inaccessible (évite une quête bloquée jusqu'au renouvellement naturel).
+                # de faction ou un objectif de métier devenu inaccessible.
                 code_nouvelle_faction = CODE_MINIJEU_PAR_FACTION.get(faction)
                 codes_a_purger = [c for c in CODES_MINIJEUX_FACTION if c != code_nouvelle_faction]
+                if metier_efface:
+                    codes_a_purger += CODES_METIER_REQUIS
                 nb_quetes_purgees = await conn.fetchval(
                     """SELECT COUNT(*) FROM quest_progress
                        WHERE guild_id=$1 AND user_id=$2 AND periode IN ('daily','weekly')
@@ -1017,7 +1017,7 @@ class JoueurFactionSelect(discord.ui.Select):
         await assign_faction_role(interaction.guild, self.membre, faction)
         description = f"Faction de {self.membre.mention} définie sur **{faction}** (rôle Discord mis à jour aussi)."
         if nb_quetes_purgees:
-            description += f"\n🧹 {nb_quetes_purgees} quête(s) de faction devenue(s) inaccessible(s) ont été retirées (nouvelles quêtes au renouvellement naturel)."
+            description += f"\n🧹 {nb_quetes_purgees} quête(s) devenue(s) inaccessible(s) (faction ou métier) ont été retirées (nouvelles quêtes au renouvellement naturel)."
         embed = discord.Embed(title="✅ Faction modifiée", description=description, color=0x27AE60)
         embed.set_footer(text="🌊 One Piece Bot • Dashboard")
         await interaction.response.edit_message(embed=embed, view=None)
